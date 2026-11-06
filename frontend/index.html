@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Tạo Câu Hỏi Và Ôn tập</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tạo Câu Hỏi Và Ôn tập">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="assets/manifest.json">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/quiz.css">
+  <link rel="stylesheet" href="css/manage.css">
+</head>
+<body>
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-box">
+      <div class="auth-brand"><span class="brand-icon">✶</span></div>
+      <h2>Tạo Câu Hỏi Và Ôn tập</h2>
+      <p class="hint">Đăng nhập để lưu dữ liệu riêng của bạn</p>
+      <div class="auth-tabs">
+        <button type="button" id="tabLogin" class="auth-tab active">Đăng nhập</button>
+        <button type="button" id="tabSignup" class="auth-tab">Đăng ký</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <label>Email
+          <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label>Mật khẩu
+          <input type="password" id="authPassword" placeholder="Tối thiểu 6 ký tự" autocomplete="current-password">
+        </label>
+        <label id="authConfirmLabel" class="hidden">Nhập lại mật khẩu
+          <input type="password" id="authConfirm" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+        </label>
+        <label class="auth-remember">
+          <input type="checkbox" id="authRemember" checked> Ghi nhớ đăng nhập trên thiết bị này
+        </label>
+        <div class="auth-actions">
+          <button type="submit" id="btnAuthSubmit" class="btn primary">Đăng nhập</button>
+        </div>
+      </form>
+      <p id="authMsg" class="hint auth-msg"></p>
+    </div>
+  </div>
+
+  <div class="layout hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">✶</span>
+        <div>
+          <h1>Tạo Câu Hỏi Và Ôn tập</h1>
+          <p class="sub">Tự tạo câu hỏi &amp; ôn luyện</p>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <button class="side-item active" data-view="quiz"> Làm bài</button>
+        <button class="side-item" data-view="manage"> Quản lý câu hỏi</button>
+      </nav>
+      <div class="side-section">
+        <div class="side-label">Ôn theo môn học nhé</div>
+        <div id="sideSubjectList" class="side-topics"></div>
+      </div>
+      <div class="side-section">
+        <div class="side-label">Tài khoản</div>
+        <button class="side-item" id="btnLogout">Đăng xuất</button>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="app-main">
+      <div class="mobile-bar">
+        <button class="menu-btn" id="btnMenu" aria-label="Mở menu">☰</button>
+        <span class="mobile-title">Tạo Câu Hỏi Và Ôn tập</span>
+      </div>
+
+      <!-- ============ VIEW: LÀM BÀI ============ -->
+      <section id="view-quiz" class="view active">
+        <!-- Màn hình chọn chủ đề -->
+        <div id="quiz-home" class="quiz-home">
+          <h2>Chọn môn học</h2>
+          <div id="subjectList" class="subject-list"></div>
+          <div class="topic-section">
+            <h2>Chọn phần ôn tập</h2>
+            <p id="topicEmpty" class="hint hidden">Môn học này chưa có câu hỏi. Vào “Quản lý câu hỏi” để thêm.</p>
+            <div id="topicList" class="topic-list"></div>
+          </div>
+          <div class="quiz-home-actions">
+            <label class="check-row">
+              <input type="checkbox" id="shuffleToggle"> Trộn thứ tự câu hỏi
+            </label>
+          </div>
+        </div>
+
+        <!-- Màn hình làm bài -->
+        <div id="quiz-run" class="quiz-run hidden">
+          <div class="quiz-top">
+            <button id="btnBackHome" class="btn ghost">← Chọn lại</button>
+            <div class="progress-text" id="progressText">Câu 1 / 10</div>
+            <button id="btnNav" class="btn ghost">☰ Các câu</button>
+          </div>
+          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+
+          <div id="questionCard" class="question-card"></div>
+
+          <div class="quiz-actions">
+            <button id="btnPrev" class="btn secondary">← Trước</button>
+            <button id="btnCheck" class="btn primary">Kiểm tra</button>
+            <button id="btnNext" class="btn secondary">Sau →</button>
+            <button id="btnFlag" class="btn ghost"> Đánh dấu khó</button>
+          </div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+        <!-- Màn hình kết quả -->
+        <div id="quiz-result" class="quiz-result hidden">
+          <h2>Kết quả</h2>
+          <div class="score-big" id="scoreBig">8/10</div>
+          <p id="scoreMsg" class="score-msg"></p>
+          <div id="wrongList" class="wrong-list"></div>
+          <div class="result-actions">
+            <button id="btnRetryWrong" class="btn primary">Làm lại các câu sai</button>
+            <button id="btnRetry" class="btn secondary">Làm lại toàn bộ</button>
+            <button id="btnResultHome" class="btn secondary">Về trang chọn đề</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: QUẢN LÝ CÂU HỎI ============ -->
+      <section id="view-manage" class="view">
+        <div class="manage-head">
+          <h2>Ngân hàng câu hỏi</h2>
+          <div class="manage-actions">
+            <button id="btnAdd" class="btn primary">＋ Thêm câu hỏi</button>
+            <button id="btnImportDoc" class="btn secondary" title="File cần đánh dấu sẵn đáp án (in đậm hoặc 'Đáp án: X')">📄 Import Word/PDF/Ảnh</button>
+            <button id="btnReset" class="btn danger">Đặt lại gốc</button>
+          </div>
+        </div>
+        <div class="manage-subject-bar">
+          <label for="manageSubject">Môn học</label>
+          <select id="manageSubject"></select>
+          <button id="btnRenameSubject" class="btn ghost sm">✎ Đổi tên</button>
+          <button id="btnDelSubject" class="btn ghost sm danger-text">🗑 Xóa môn</button>
+          <button id="btnAddSubject" class="btn ghost sm">＋ Môn mới</button>
+          <span id="manageCount" class="hint"></span>
+        </div>
+        <input type="file" id="importDocFile" accept=".docx,.pdf,.txt,.jpg,.jpeg,.png" class="hidden">
+        <p class="hint">Dữ liệu được lưu trong trình duyệt (localStorage) của thiết bị này.</p>
+        <div id="manageList" class="manage-list"></div>
+        <div id="managePager" class="manage-pager hidden"></div>
+
+        <!-- Form thêm/sửa -->
+        <div id="editModal" class="modal hidden">
+          <div class="modal-box">
+            <h3 id="editTitle">Thêm câu hỏi</h3>
+            <form id="qForm">
+              <label>Môn học
+                <select id="fSubject"></select>
+              </label>
+              <label>Chủ đề
+                <input type="text" id="fTopic" placeholder="VD: Chương 3: CNXH & Thời kỳ quá độ">
+              </label>
+              <label>Dạng câu hỏi
+                <select id="fType">
+                  <option value="mcq">Trắc nghiệm 1 đáp án</option>
+                  <option value="multi">Trắc nghiệm nhiều đáp án</option>
+                  <option value="tf">Đúng / Sai (nhiều phát biểu)</option>
+                  <option value="drag">Kéo thả (ghép cặp)</option>
+                </select>
+              </label>
+              <label>Nội dung câu hỏi
+                <textarea id="fQuestion" rows="2"></textarea>
+              </label>
+              <div id="fBody"></div>
+              <label>Giải thích
+                <textarea id="fExplain" rows="2"></textarea>
+              </label>
+              <div class="modal-actions">
+                <button type="button" id="btnCancelEdit" class="btn secondary">Hủy</button>
+                <button type="submit" class="btn primary">Lưu</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-box modal-small">
+      <h3>Xác nhận</h3>
+      <p id="confirmMsg" style="margin:0 0 16px;">Bạn có chắc chắn?</p>
+      <div class="modal-actions">
+        <button type="button" id="confirmCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="confirmOk" class="btn danger">Xóa</button>
+      </div>
+    </div>
+  </div>
+  <div id="subjectModal" class="modal hidden">
+    <div class="modal-box modal-small">
+      <h3 id="subjectModalTitle">Thêm môn học</h3>
+      <label>Tên môn học
+        <input type="text" id="subjectName" placeholder="VD: Tin học đại cương">
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="subjectCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="subjectSave" class="btn primary">Lưu</button>
+      </div>
+    </div>
+  </div>
+  <div id="ocrLoading" class="modal hidden">
+    <div class="modal-box modal-small" style="text-align:center;">
+      <h3>Đang nhận diện chữ (OCR)…</h3>
+      <p id="ocrStatus" class="hint" style="margin:0 0 14px;">Đang tải dữ liệu tiếng Việt…</p>
+      <div class="ocr-bar"><div id="ocrFill" class="ocr-fill"></div></div>
+    </div>
+  </div>
+  <div id="importModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Import câu hỏi từ Word/PDF/Ảnh</h3>
+      <p class="imp-warn">⚠️ Đáp án đúng chỉ được tự động nhận diện khi file đã <strong>đánh dấu sẵn</strong> (chữ in đậm hoặc ghi “Đáp án: X”). File chưa đánh dấu thì bạn phải tự tích chọn đáp án đúng ở danh sách bên dưới.</p>
+      <p id="importSummary" class="hint" style="margin:0 0 12px;"></p>
+      <label>Chủ đề (chương) cho các câu nhập
+        <input type="text" id="importTopic" placeholder="VD: Chương 1: ...">
+      </label>
+      <div id="importReviewList" class="import-review-list"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnImportCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="btnImportConfirm" class="btn primary">Nhập câu hỏi</button>
+      </div>
+    </div>
+  </div>
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="detailTitle">Chi tiết câu hỏi</h3>
+      <div id="detailBody"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnDetailEdit" class="btn primary">Sửa câu hỏi</button>
+        <button type="button" id="btnDetailClose" class="btn secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+  <div id="navModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Các câu hỏi</h3>
+      <p id="navSummary" class="hint" style="margin:0;"></p>
+      <div id="navGrid" class="nav-grid"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnNavClose" class="btn secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+  <script src="js/config.js"></script>
+  <script src="js/questions.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/import.js"></script>
+</body>
+</html>

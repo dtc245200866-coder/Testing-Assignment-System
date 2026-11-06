@@ -1,0 +1,16 @@
+{
+  "name": "tao-cau-hoi-va-on-tap",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Ứng dụng tự tạo câu hỏi và ôn tập nhiều môn học (trắc nghiệm, đúng/sai, kéo thả).",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "serve": "node backend/server.js",
+    "build": "node tools/build-single.js",
+    "deploy": "netlify deploy --prod --dir=frontend --site 983bfb19-debc-4238-a6a2-b8f4620eb971"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
+}

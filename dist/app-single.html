@@ -1,0 +1,3273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Tạo Câu Hỏi Và Ôn tập</title>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tạo Câu Hỏi Và Ôn tập">
+  
+  
+  <style>
+/* ============================================================
+   variables.css — biến màu sắc & theme (sáng / tối)
+   ============================================================ */
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #1a1d24;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-soft: #dbeafe;
+  --correct: #16a34a;
+  --correct-soft: #dcfce7;
+  --wrong: #dc2626;
+  --wrong-soft: #fee2e2;
+  --flag: #d97706;
+  --flag-soft: #fef3c7;
+  --chip: #eef2ff;
+  --chip-border: #c7d2fe;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115;
+    --card: #181b21;
+    --text: #e7e9ee;
+    --muted: #9aa1ad;
+    --border: #2a2f3a;
+    --primary: #3b82f6;
+    --primary-dark: #60a5fa;
+    --primary-soft: #1e3a5f;
+    --correct: #22c55e;
+    --correct-soft: #14321f;
+    --wrong: #ef4444;
+    --wrong-soft: #3a1515;
+    --flag: #fbbf24;
+    --flag-soft: #3a2f0e;
+    --chip: #232836;
+    --chip-border: #3a4356;
+    --shadow: 0 1px 3px rgba(0,0,0,.5);
+  }
+}
+
+</style>
+  <style>
+/* ============================================================
+   base.css — reset, typography, nút bấm, thông báo
+   ============================================================ */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+.hidden { display: none !important; }
+
+/* Nút bấm */
+.btn {
+  border: none; border-radius: 10px; padding: 11px 18px; font-size: 14.5px; font-weight: 700;
+  cursor: pointer; transition: .12s;
+}
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.primary:hover { background: var(--primary-dark); }
+.btn.secondary { background: var(--chip); color: var(--text); border: 1px solid var(--chip-border); }
+.btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn.danger { background: var(--wrong-soft); color: var(--wrong); border: 1px solid var(--wrong); }
+.btn.flagged { background: var(--flag-soft); border: 1px solid var(--flag); color: var(--flag); }
+.btn.sm { padding: 7px 12px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Thông báo ngắn (toast) */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 11px 18px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; z-index: 80; max-width: min(90vw, 420px); text-align: center;
+  box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.toast.show { opacity: 1; }
+
+/* Màn hình đăng nhập / đăng ký */
+.auth-screen { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg); }
+.auth-box {
+  width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 26px 24px; box-shadow: var(--shadow); text-align: center;
+}
+.auth-brand { display: flex; justify-content: center; margin-bottom: 12px; }
+.auth-brand .brand-icon { width: 48px; height: 48px; font-size: 24px; }
+.auth-box h2 { margin: 0 0 4px; font-size: 20px; }
+.auth-box .hint { margin: 0 0 18px; }
+.auth-box label { display: block; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: var(--muted); text-align: left; }
+.auth-box input {
+  width: 100%; margin-top: 4px; padding: 10px 11px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--bg); color: var(--text); font-size: 15px; font-family: inherit;
+}
+.auth-actions { display: flex; gap: 10px; margin-top: 4px; }
+.auth-actions .btn { flex: 1; }
+.auth-msg { margin: 12px 0 0; min-height: 18px; color: var(--wrong); }
+.auth-tabs { display: flex; gap: 4px; margin-bottom: 14px; background: var(--chip); border-radius: 10px; padding: 4px; }
+.auth-tab {
+  flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--muted); font-weight: 600; font-size: 14px; font-family: inherit;
+}
+.auth-tab.active { background: var(--card); color: var(--primary); box-shadow: var(--shadow); }
+.auth-remember { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; margin-bottom: 12px; cursor: pointer; }
+.auth-remember input { width: auto; margin: 0; }
+
+</style>
+  <style>
+/* ============================================================
+   layout.css — bố cục chính + sidebar + thanh mobile
+   ============================================================ */
+.app-main {
+  max-width: 860px; margin: 0 auto;
+  padding-block: 20px 60px;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+}
+.view { display: none; }
+.view.active { display: block; }
+
+.layout { min-height: 100vh; }
+.brand-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex: none;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: #fff; display: grid; place-items: center; font-size: 20px;
+}
+
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 250px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px 14px 28px;
+  overflow-y: auto;
+  z-index: 40;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding: 0 4px; }
+.sidebar-brand h1 { margin: 0; font-size: 17px; }
+.sidebar-brand .sub { margin: 0; font-size: 11.5px; color: var(--muted); }
+
+.side-nav { display: flex; flex-direction: column; gap: 6px; }
+.side-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border: none; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--text); font-size: 14.5px; font-weight: 600; text-align: left;
+  font-family: inherit;
+}
+.side-item:hover { background: var(--chip); }
+.side-item.active { background: var(--primary); color: #fff; }
+
+.side-section { margin-top: 22px; }
+.side-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 0 4px; margin-bottom: 8px; }
+.side-topics { display: flex; flex-direction: column; gap: 4px; }
+.side-topic {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer;
+  background: transparent; color: var(--text); font-size: 13px; font-weight: 500; text-align: left;
+  font-family: inherit; line-height: 1.35;
+}
+.side-topic:hover { background: var(--chip); }
+.side-topic.active { background: var(--primary-soft); color: var(--primary); }
+.side-topic .st-count { color: var(--muted); font-size: 12px; flex: none; }
+
+.sidebar-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 39;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.sidebar-backdrop.show { opacity: 1; pointer-events: auto; }
+
+.mobile-bar { display: none; align-items: center; gap: 12px; padding: 4px 0 14px; }
+.mobile-title { font-weight: 700; font-size: 16px; }
+.menu-btn {
+  width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); color: var(--text); font-size: 18px; cursor: pointer; flex: none;
+}
+
+/* Desktop: sidebar cố định, nội dung dạt phải */
+@media (min-width: 820px) {
+  .app-main { margin-left: 250px; margin-right: auto; }
+  .sidebar-backdrop { display: none; }
+}
+
+/* Mobile: sidebar trượt từ trái */
+@media (max-width: 819px) {
+  .sidebar { transform: translateX(-100%); transition: transform .22s ease; }
+  .sidebar.open { transform: translateX(0); }
+  .mobile-bar { display: flex; }
+}
+
+</style>
+  <style>
+/* ============================================================
+   components.css — modal, bảng điều hướng câu hỏi, hint
+   ============================================================ */
+.hint { color: var(--muted); font-size: 13px; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal-box {
+  background: var(--card); border-radius: 14px; padding: 20px; width: 100%; max-width: 620px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-box h3 { margin-top: 0; }
+.modal-box label { display: block; margin-bottom: 12px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.modal-box input[type=text], .modal-box textarea, .modal-box select {
+  width: 100%; margin-top: 4px; padding: 9px 11px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14.5px; font-family: inherit;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.modal-small { max-width: 380px; }
+
+/* Bảng điều hướng câu hỏi */
+.nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; margin: 14px 0 4px; }
+.nav-cell {
+  position: relative; aspect-ratio: 1; min-width: 0;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  background: var(--card); color: var(--text); cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.nav-cell.current { border-color: var(--primary); outline: 2px solid var(--primary-soft); }
+.nav-cell.correct { background: var(--correct-soft); border-color: var(--correct); color: var(--correct); }
+.nav-cell.wrong { background: var(--wrong-soft); border-color: var(--wrong); color: var(--wrong); }
+.nav-cell.flagged { border-color: var(--flag); }
+.nav-cell.flagged::after {
+  content: "★"; position: absolute; top: 2px; right: 3px;
+  font-size: 11px; line-height: 1; color: var(--flag);
+}
+
+</style>
+  <style>
+/* ============================================================
+   quiz.css — giao diện làm bài: chọn đề, câu hỏi, đáp án,
+              đúng/sai, kéo thả, kết quả
+   ============================================================ */
+
+/* Màn chọn đề */
+.quiz-home h2 { margin-top: 0; }
+/* Chọn môn học */
+.subject-list { display: grid; gap: 10px; margin-bottom: 20px; }
+.subject-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; cursor: pointer; box-shadow: var(--shadow); transition: .15s;
+}
+.subject-item:hover { border-color: var(--primary); }
+.subject-item.selected { border-color: var(--primary); background: var(--primary-soft); }
+.subject-icon {
+  flex: none; width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  color: #fff; display: grid; place-items: center; font-size: 17px;
+}
+.subject-item .s-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.subject-item .s-name { font-weight: 600; line-height: 1.3; }
+.subject-item .s-count { color: var(--muted); font-size: 12.5px; }
+.topic-section { margin-top: 6px; }
+.topic-list { display: grid; gap: 10px; }
+.topic-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; cursor: pointer; box-shadow: var(--shadow); transition: .15s;
+}
+.topic-item:hover { border-color: var(--primary); }
+.topic-item .t-name { font-weight: 600; }
+.topic-item .t-count { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.quiz-home-actions { margin-top: 14px; }
+.check-row { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
+
+/* Thanh tiến độ */
+.quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.progress-text { font-weight: 600; color: var(--muted); font-size: 14px; }
+.progress-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
+.progress-fill { height: 100%; background: var(--primary); width: 0; transition: width .25s; }
+
+/* Thẻ câu hỏi */
+.question-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; box-shadow: var(--shadow);
+}
+.q-tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 2px 10px; border-radius: 999px; margin-bottom: 10px; }
+.q-type-tag { margin-left: 6px; color: var(--muted); background: var(--border); }
+.q-text { font-size: 16.5px; font-weight: 600; margin: 0 0 16px; }
+
+/* Đáp án trắc nghiệm */
+.option {
+  display: flex; align-items: flex-start; gap: 10px;
+  border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; margin-bottom: 9px;
+  cursor: pointer; transition: .12s; background: var(--card);
+}
+.option:hover { border-color: var(--primary); }
+.option.selected { border-color: var(--primary); background: var(--primary-soft); }
+.option .opt-letter {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--chip); border: 1px solid var(--chip-border); color: var(--text);
+  display: grid; place-items: center; font-weight: 700; font-size: 13px;
+}
+.option.selected .opt-letter { background: var(--primary); color: #fff; border-color: var(--primary); }
+.option.correct { border-color: var(--correct); background: var(--correct-soft); }
+.option.correct .opt-letter { background: var(--correct); color: #fff; border-color: var(--correct); }
+.option.wrong { border-color: var(--wrong); background: var(--wrong-soft); }
+.option.wrong .opt-letter { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+.option.locked { cursor: default; }
+
+/* Đúng / Sai */
+.tf-statement {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+}
+.tf-statement .tf-text { margin-bottom: 10px; }
+.tf-btns { display: flex; gap: 8px; }
+.tf-btns button {
+  flex: 1; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--text); font-weight: 600; cursor: pointer;
+}
+.tf-btns button.on-true, .tf-btns button.on-false { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.tf-btns button.tf-correct { border-color: var(--correct); background: var(--correct-soft); color: var(--correct); }
+.tf-btns button.tf-wrong { border-color: var(--wrong); background: var(--wrong-soft); color: var(--wrong); }
+.tf-btns button.locked { cursor: default; }
+
+/* Kéo thả */
+.drag-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .drag-zone { grid-template-columns: 1fr; } }
+.drag-pool { display: flex; flex-direction: column; gap: 8px; }
+.drag-pool h4, .drag-targets h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.drag-hint { margin: -4px 0 10px; font-size: 12px; color: var(--muted); }
+.chip {
+  border: 1.5px solid var(--chip-border); background: var(--chip); border-radius: 10px;
+  padding: 10px 12px; cursor: grab; font-weight: 600; text-align: center; user-select: none;
+}
+.chip.selected-chip { outline: 3px solid var(--primary); }
+.chip.used { opacity: .35; pointer-events: none; }
+.drag-target {
+  border: 2px dashed var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+  min-height: 56px; cursor: pointer;
+}
+.drag-target .target-text { font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+.drag-target .slot {
+  border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  min-height: 38px; display: flex; align-items: center; font-weight: 600; font-size: 14px; gap: 8px;
+  background: var(--card); color: var(--muted);
+}
+.drag-target .slot.filled { color: var(--text); }
+.drag-target .slot .rm { margin-left: auto; cursor: pointer; color: var(--muted); font-weight: 700; }
+.drag-target.correct { border-color: var(--correct); background: var(--correct-soft); }
+.drag-target.wrong { border-color: var(--wrong); background: var(--wrong-soft); }
+
+/* Nút hành động + phản hồi */
+.quiz-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.feedback {
+  margin-top: 16px; padding: 14px 16px; border-radius: 10px; display: none;
+  font-size: 14.5px;
+}
+.feedback.show { display: block; }
+.feedback.ok { background: var(--correct-soft); border: 1px solid var(--correct); color: var(--correct); }
+.feedback.no { background: var(--wrong-soft); border: 1px solid var(--wrong); color: var(--wrong); }
+.feedback .fb-explain { color: var(--text); margin-top: 6px; }
+
+/* Kết quả */
+.quiz-result { text-align: center; }
+.score-big { font-size: 52px; font-weight: 800; color: var(--primary); }
+.score-msg { color: var(--muted); }
+.wrong-list { text-align: left; margin: 20px auto; max-width: 640px; }
+.wrong-item {
+  background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--wrong);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; text-align: left;
+}
+.wrong-item .wi-q { font-weight: 600; }
+.wrong-item .wi-a { color: var(--correct); font-size: 14px; margin-top: 4px; }
+.result-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+
+</style>
+  <style>
+/* ============================================================
+   manage.css — quản lý câu hỏi: danh sách + form thêm/sửa
+   ============================================================ */
+.manage-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.manage-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.manage-subject-bar { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; flex-wrap: wrap; }
+.manage-subject-bar label { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.manage-subject-bar select {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--text); font-size: 14px; font-family: inherit; min-width: 200px;
+}
+.manage-subject-bar .hint { margin-left: auto; }
+.manage-subject-bar .danger-text { color: var(--wrong); }
+.manage-list { display: grid; gap: 10px; margin-top: 16px; }
+.manage-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+.manage-pager .pager-info { color: var(--muted); font-size: 13px; }
+.mg-item {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.mg-item .mg-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.mg-main { flex: 1; min-width: 0; }
+.mg-item .mg-q { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mg-item .mg-meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+.mg-item .mg-btns { display: flex; gap: 6px; flex: none; }
+.mg-item .mg-btns button { padding: 5px 10px; font-size: 12.5px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+.mg-item .mg-btns .detail { color: var(--primary); border-color: var(--primary); }
+.mg-item .mg-btns .del { color: var(--wrong); border-color: var(--wrong); }
+
+/* Chi tiết câu hỏi (modal) */
+.detail-meta { margin: 0 0 12px; }
+.dt-tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--primary); background: var(--primary-soft); padding: 2px 10px; border-radius: 999px; margin-right: 6px; }
+.detail-q { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+.detail-opt { display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px; margin-bottom: 8px; }
+.detail-opt.correct { border-color: var(--correct); background: var(--correct-soft); }
+.dt-letter { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--chip); border: 1px solid var(--chip-border); color: var(--text); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.detail-opt.correct .dt-letter { background: var(--correct); color: #fff; border-color: var(--correct); }
+.dt-ok { margin-left: auto; color: var(--correct); font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+.detail-explain { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--chip); font-size: 14px; }
+
+/* Import Word/PDF */
+.imp-warn {
+  margin: 0 0 12px; padding: 9px 12px; border-radius: 8px;
+  background: var(--flag-soft); border: 1px solid var(--flag); color: var(--flag);
+  font-size: 13px;
+}
+.import-review-list { display: grid; gap: 12px; margin: 4px 0; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
+.ocr-bar { height: 10px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.ocr-fill { height: 100%; width: 0; background: var(--primary); transition: width .2s; }
+.imp-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.imp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.imp-num { font-weight: 700; font-size: 13px; color: var(--primary); }
+.imp-del { border: none; background: transparent; color: var(--wrong); cursor: pointer; font-size: 15px; padding: 2px 6px; line-height: 1; }
+.imp-item textarea.imp-q { width: 100%; margin-top: 0; resize: vertical; }
+.imp-opts { display: grid; gap: 6px; margin-top: 8px; }
+.imp-opt { display: flex; align-items: center; gap: 8px; }
+.imp-letter {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--chip); border: 1px solid var(--chip-border); color: var(--text);
+  display: grid; place-items: center; font-weight: 700; font-size: 12px;
+}
+.modal-box .imp-opt-text { width: auto; flex: 1; margin-top: 0; }
+.imp-ok { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--correct); font-weight: 600; white-space: nowrap; cursor: pointer; }
+.imp-ok input { margin: 0; }
+
+/* Form thêm/sửa (trong modal) */
+.fbody-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.fbody-row input[type=text] { flex: 1; }
+.fbody-row .rm-row { cursor: pointer; color: var(--wrong); font-weight: 700; padding: 4px 8px; }
+.correct-mark { color: var(--correct); font-weight: 700; font-size: 13px; white-space: nowrap; }
+
+</style>
+</head>
+<body>
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-box">
+      <div class="auth-brand"><span class="brand-icon">✶</span></div>
+      <h2>Tạo Câu Hỏi Và Ôn tập</h2>
+      <p class="hint">Đăng nhập để lưu dữ liệu riêng của bạn</p>
+      <div class="auth-tabs">
+        <button type="button" id="tabLogin" class="auth-tab active">Đăng nhập</button>
+        <button type="button" id="tabSignup" class="auth-tab">Đăng ký</button>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <label>Email
+          <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label>Mật khẩu
+          <input type="password" id="authPassword" placeholder="Tối thiểu 6 ký tự" autocomplete="current-password">
+        </label>
+        <label id="authConfirmLabel" class="hidden">Nhập lại mật khẩu
+          <input type="password" id="authConfirm" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+        </label>
+        <label class="auth-remember">
+          <input type="checkbox" id="authRemember" checked> Ghi nhớ đăng nhập trên thiết bị này
+        </label>
+        <div class="auth-actions">
+          <button type="submit" id="btnAuthSubmit" class="btn primary">Đăng nhập</button>
+        </div>
+      </form>
+      <p id="authMsg" class="hint auth-msg"></p>
+    </div>
+  </div>
+
+  <div class="layout hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">✶</span>
+        <div>
+          <h1>Tạo Câu Hỏi Và Ôn tập</h1>
+          <p class="sub">Tự tạo câu hỏi &amp; ôn luyện</p>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <button class="side-item active" data-view="quiz"> Làm bài</button>
+        <button class="side-item" data-view="manage"> Quản lý câu hỏi</button>
+      </nav>
+      <div class="side-section">
+        <div class="side-label">Ôn theo môn học nhé</div>
+        <div id="sideSubjectList" class="side-topics"></div>
+      </div>
+      <div class="side-section">
+        <div class="side-label">Tài khoản</div>
+        <button class="side-item" id="btnLogout">Đăng xuất</button>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <main class="app-main">
+      <div class="mobile-bar">
+        <button class="menu-btn" id="btnMenu" aria-label="Mở menu">☰</button>
+        <span class="mobile-title">Tạo Câu Hỏi Và Ôn tập</span>
+      </div>
+
+      <!-- ============ VIEW: LÀM BÀI ============ -->
+      <section id="view-quiz" class="view active">
+        <!-- Màn hình chọn chủ đề -->
+        <div id="quiz-home" class="quiz-home">
+          <h2>Chọn môn học</h2>
+          <div id="subjectList" class="subject-list"></div>
+          <div class="topic-section">
+            <h2>Chọn phần ôn tập</h2>
+            <p id="topicEmpty" class="hint hidden">Môn học này chưa có câu hỏi. Vào “Quản lý câu hỏi” để thêm.</p>
+            <div id="topicList" class="topic-list"></div>
+          </div>
+          <div class="quiz-home-actions">
+            <label class="check-row">
+              <input type="checkbox" id="shuffleToggle"> Trộn thứ tự câu hỏi
+            </label>
+          </div>
+        </div>
+
+        <!-- Màn hình làm bài -->
+        <div id="quiz-run" class="quiz-run hidden">
+          <div class="quiz-top">
+            <button id="btnBackHome" class="btn ghost">← Chọn lại</button>
+            <div class="progress-text" id="progressText">Câu 1 / 10</div>
+            <button id="btnNav" class="btn ghost">☰ Các câu</button>
+          </div>
+          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+
+          <div id="questionCard" class="question-card"></div>
+
+          <div class="quiz-actions">
+            <button id="btnPrev" class="btn secondary">← Trước</button>
+            <button id="btnCheck" class="btn primary">Kiểm tra</button>
+            <button id="btnNext" class="btn secondary">Sau →</button>
+            <button id="btnFlag" class="btn ghost"> Đánh dấu khó</button>
+          </div>
+          <div id="feedback" class="feedback"></div>
+        </div>
+
+        <!-- Màn hình kết quả -->
+        <div id="quiz-result" class="quiz-result hidden">
+          <h2>Kết quả</h2>
+          <div class="score-big" id="scoreBig">8/10</div>
+          <p id="scoreMsg" class="score-msg"></p>
+          <div id="wrongList" class="wrong-list"></div>
+          <div class="result-actions">
+            <button id="btnRetryWrong" class="btn primary">Làm lại các câu sai</button>
+            <button id="btnRetry" class="btn secondary">Làm lại toàn bộ</button>
+            <button id="btnResultHome" class="btn secondary">Về trang chọn đề</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: QUẢN LÝ CÂU HỎI ============ -->
+      <section id="view-manage" class="view">
+        <div class="manage-head">
+          <h2>Ngân hàng câu hỏi</h2>
+          <div class="manage-actions">
+            <button id="btnAdd" class="btn primary">＋ Thêm câu hỏi</button>
+            <button id="btnImportDoc" class="btn secondary" title="File cần đánh dấu sẵn đáp án (in đậm hoặc 'Đáp án: X')">📄 Import Word/PDF/Ảnh</button>
+            <button id="btnReset" class="btn danger">Đặt lại gốc</button>
+          </div>
+        </div>
+        <div class="manage-subject-bar">
+          <label for="manageSubject">Môn học</label>
+          <select id="manageSubject"></select>
+          <button id="btnRenameSubject" class="btn ghost sm">✎ Đổi tên</button>
+          <button id="btnDelSubject" class="btn ghost sm danger-text">🗑 Xóa môn</button>
+          <button id="btnAddSubject" class="btn ghost sm">＋ Môn mới</button>
+          <span id="manageCount" class="hint"></span>
+        </div>
+        <input type="file" id="importDocFile" accept=".docx,.pdf,.txt,.jpg,.jpeg,.png" class="hidden">
+        <p class="hint">Dữ liệu được lưu trong trình duyệt (localStorage) của thiết bị này.</p>
+        <div id="manageList" class="manage-list"></div>
+        <div id="managePager" class="manage-pager hidden"></div>
+
+        <!-- Form thêm/sửa -->
+        <div id="editModal" class="modal hidden">
+          <div class="modal-box">
+            <h3 id="editTitle">Thêm câu hỏi</h3>
+            <form id="qForm">
+              <label>Môn học
+                <select id="fSubject"></select>
+              </label>
+              <label>Chủ đề
+                <input type="text" id="fTopic" placeholder="VD: Chương 3: CNXH & Thời kỳ quá độ">
+              </label>
+              <label>Dạng câu hỏi
+                <select id="fType">
+                  <option value="mcq">Trắc nghiệm 1 đáp án</option>
+                  <option value="multi">Trắc nghiệm nhiều đáp án</option>
+                  <option value="tf">Đúng / Sai (nhiều phát biểu)</option>
+                  <option value="drag">Kéo thả (ghép cặp)</option>
+                </select>
+              </label>
+              <label>Nội dung câu hỏi
+                <textarea id="fQuestion" rows="2"></textarea>
+              </label>
+              <div id="fBody"></div>
+              <label>Giải thích
+                <textarea id="fExplain" rows="2"></textarea>
+              </label>
+              <div class="modal-actions">
+                <button type="button" id="btnCancelEdit" class="btn secondary">Hủy</button>
+                <button type="submit" class="btn primary">Lưu</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-box modal-small">
+      <h3>Xác nhận</h3>
+      <p id="confirmMsg" style="margin:0 0 16px;">Bạn có chắc chắn?</p>
+      <div class="modal-actions">
+        <button type="button" id="confirmCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="confirmOk" class="btn danger">Xóa</button>
+      </div>
+    </div>
+  </div>
+  <div id="subjectModal" class="modal hidden">
+    <div class="modal-box modal-small">
+      <h3 id="subjectModalTitle">Thêm môn học</h3>
+      <label>Tên môn học
+        <input type="text" id="subjectName" placeholder="VD: Tin học đại cương">
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="subjectCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="subjectSave" class="btn primary">Lưu</button>
+      </div>
+    </div>
+  </div>
+  <div id="ocrLoading" class="modal hidden">
+    <div class="modal-box modal-small" style="text-align:center;">
+      <h3>Đang nhận diện chữ (OCR)…</h3>
+      <p id="ocrStatus" class="hint" style="margin:0 0 14px;">Đang tải dữ liệu tiếng Việt…</p>
+      <div class="ocr-bar"><div id="ocrFill" class="ocr-fill"></div></div>
+    </div>
+  </div>
+  <div id="importModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Import câu hỏi từ Word/PDF/Ảnh</h3>
+      <p class="imp-warn">⚠️ Đáp án đúng chỉ được tự động nhận diện khi file đã <strong>đánh dấu sẵn</strong> (chữ in đậm hoặc ghi “Đáp án: X”). File chưa đánh dấu thì bạn phải tự tích chọn đáp án đúng ở danh sách bên dưới.</p>
+      <p id="importSummary" class="hint" style="margin:0 0 12px;"></p>
+      <label>Chủ đề (chương) cho các câu nhập
+        <input type="text" id="importTopic" placeholder="VD: Chương 1: ...">
+      </label>
+      <div id="importReviewList" class="import-review-list"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnImportCancel" class="btn secondary">Hủy</button>
+        <button type="button" id="btnImportConfirm" class="btn primary">Nhập câu hỏi</button>
+      </div>
+    </div>
+  </div>
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-box">
+      <h3 id="detailTitle">Chi tiết câu hỏi</h3>
+      <div id="detailBody"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnDetailEdit" class="btn primary">Sửa câu hỏi</button>
+        <button type="button" id="btnDetailClose" class="btn secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+  <div id="navModal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Các câu hỏi</h3>
+      <p id="navSummary" class="hint" style="margin:0;"></p>
+      <div id="navGrid" class="nav-grid"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnNavClose" class="btn secondary">Đóng</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+  <script>
+// Cấu hình Supabase — anon key là khóa công khai, an toàn khi đặt ở frontend.
+// Dữ liệu được bảo vệ bằng Row Level Security (xem supabase/schema.sql).
+window.APP_CONFIG = {
+  SUPABASE_URL: "https://dnixdfwjehyrqkcevyfa.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuaXhkZndqZWh5cnFrY2V2eWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MDg4MTksImV4cCI6MjEwNzk4NDgxOX0.XebQr3HBJcf79hC_8aVGYcLMK4xDT6UYDZTbMqPa6sk"
+};
+
+</script>
+  <script>
+// Ngân hàng câu hỏi ôn tập, tổ chức theo MÔN HỌC (mỗi môn học là một option).
+// Cấu trúc: window.SEED_SUBJECTS = [ { id, name, icon, questions: [...] }, ... ]
+// Mỗi câu hỏi có "topic" (chương/bài trong môn học). Các dạng câu hỏi:
+//   "mcq"   -> trắc nghiệm 1 đáp án (a/b/c/d)
+//   "multi" -> trắc nghiệm nhiều đáp án (chọn N đáp án đúng)
+//   "tf"    -> đúng / sai (nhiều phát biểu)
+//   "drag"  -> kéo thả (ghép cặp khái niệm - nội dung)
+window.SEED_SUBJECTS = [
+  {
+    id: "cnxhkh",
+    name: "Chủ nghĩa xã hội khoa học",
+    icon: "✶",
+    questions: [
+  // ================== CHƯƠNG 1: NHẬP MÔN CNXHKH ==================
+  {
+    id: "c1-01",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Những nhà tư tưởng tiêu biểu của chủ nghĩa xã hội không tưởng phê phán đầu thế kỷ XIX là ai?",
+    options: [
+      "Xanh Ximông, Sáclo Phuriê, G. Mably",
+      "Xanh Ximông, Sáclo Phuriê, Rôbớt Ôoen",
+      "Xanh Ximông, Giăng Mêliê, Rôbớt Ôoen",
+      "Grácco Babớp, Xanh Ximông, Sáclo Phuriê"
+    ],
+    answer: 1,
+    explanation: "Ba đại biểu tiêu biểu của CNXH không tưởng phê phán đầu thế kỷ XIX là Xanh Ximông (Saint-Simon), Sáclo Phuriê (Charles Fourier) và Rôbớt Ôoen (Robert Owen)."
+  },
+  {
+    id: "c1-02",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Đối tượng nghiên cứu của chủ nghĩa xã hội khoa học là gì?",
+    options: [
+      "Là những quy luật kinh tế",
+      "Là những quy luật văn hóa - xã hội",
+      "Là những quy luật hình thành, phát triển và hoàn thiện của các hình thái kinh tế - xã hội",
+      "Là những quy luật và tính quy luật chính trị - xã hội của quá trình phát sinh, hình thành và phát triển của hình thái kinh tế - xã hội cộng sản chủ nghĩa"
+    ],
+    answer: 3,
+    explanation: "Đối tượng của CNXHKH là những quy luật, tính quy luật chính trị - xã hội của quá trình phát sinh, hình thành và phát triển của hình thái kinh tế - xã hội cộng sản chủ nghĩa."
+  },
+  {
+    id: "c1-03",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Ph.Ăngghen đã đánh giá: “Hai phát hiện vĩ đại này đã đưa chủ nghĩa xã hội trở thành một khoa học”. Hai phát kiến đó là gì?",
+    options: [
+      "Chủ nghĩa duy vật biện chứng và Chủ nghĩa duy vật lịch sử",
+      "Học thuyết giá trị thặng dư và Chủ nghĩa duy vật lịch sử",
+      "Sứ mệnh lịch sử của giai cấp công nhân và Chủ nghĩa duy vật lịch sử",
+      "Sứ mệnh lịch sử của giai cấp công nhân và Học thuyết giá trị thặng dư"
+    ],
+    answer: 1,
+    explanation: "Hai phát kiến vĩ đại của Mác là Chủ nghĩa duy vật lịch sử và Học thuyết giá trị thặng dư — nhờ đó CNXH từ không tưởng trở thành khoa học."
+  },
+  {
+    id: "c1-04",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Phát kiến nào của C.Mác và Ph.Ăngghen chỉ ra sự diệt vong về kinh tế của chủ nghĩa tư bản?",
+    options: [
+      "Chủ nghĩa duy vật lịch sử",
+      "Học thuyết về sứ mệnh lịch sử toàn thế giới của giai cấp công nhân",
+      "Chủ nghĩa duy vật biện chứng",
+      "Học thuyết về giá trị thặng dư"
+    ],
+    answer: 3,
+    explanation: "Học thuyết giá trị thặng dư vạch rõ bản chất bóc lột của CNTB và quy luật vận động tất yếu dẫn đến sự diệt vong về kinh tế của nó."
+  },
+  {
+    id: "c1-05",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Phát kiến nào của C.Mác và Ph.Ăngghen chỉ ra những hạn chế có tính lịch sử của chủ nghĩa xã hội không tưởng?",
+    options: [
+      "Học thuyết về sứ mệnh lịch sử toàn thế giới của giai cấp công nhân",
+      "Học thuyết về giá trị thặng dư",
+      "Chủ nghĩa duy vật lịch sử",
+      "Chủ nghĩa duy vật biện chứng"
+    ],
+    answer: 2,
+    explanation: "Chủ nghĩa duy vật lịch sử đã giải thích đúng đắn nguyên nhân, động lực của sự vận động lịch sử, khắc phục hạn chế của CNXH không tưởng."
+  },
+  {
+    id: "c1-06",
+    topic: "Chương 1: Nhập môn CNXHKH",
+    type: "mcq",
+    question: "Phạm trù nào được coi là cơ bản nhất và là xuất phát điểm của chủ nghĩa xã hội khoa học?",
+    options: [
+      "Sứ mệnh lịch sử của giai cấp công nhân",
+      "Cách mạng xã hội chủ nghĩa",
+      "Chuyên chính vô sản",
+      "Giai cấp công nhân"
+    ],
+    answer: 0,
+    explanation: "Sứ mệnh lịch sử của giai cấp công nhân là phạm trù cơ bản nhất, là xuất phát điểm của toàn bộ CNXHKH."
+  },
+
+  // ================== CHƯƠNG 2: SỨ MỆNH LỊCH SỬ CỦA GCCN ==================
+  {
+    id: "c2-01",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Theo C.Mác và Ph.Ăngghen thì giai đoạn đầu của hình thái kinh tế - xã hội cộng sản chủ nghĩa là gì?",
+    options: [
+      "Chủ nghĩa cộng sản",
+      "Chủ nghĩa xã hội",
+      "Cộng sản chủ nghĩa",
+      "Thời kỳ quá độ"
+    ],
+    answer: 1,
+    explanation: "Hình thái kinh tế - xã hội cộng sản chủ nghĩa gồm giai đoạn thấp (chủ nghĩa xã hội) và giai đoạn cao (chủ nghĩa cộng sản)."
+  },
+  {
+    id: "c2-02",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Xét về phương thức lao động, phương thức sản xuất, giai cấp công nhân mang thuộc tính cơ bản nào?",
+    options: [
+      "Là giai cấp tạo ra của cải vật chất làm giàu cho xã hội",
+      "Giai cấp có tư liệu sản xuất nhiều nhất",
+      "Giai cấp trực tiếp hay gián tiếp vận hành máy móc có tính chất công nghiệp ngày càng hiện đại",
+      "Có số lượng đông nhất trong dân cư"
+    ],
+    answer: 2,
+    explanation: "Xét về phương thức lao động, GCCN là những người lao động trực tiếp hay gián tiếp vận hành công cụ sản xuất có tính chất công nghiệp ngày càng hiện đại."
+  },
+  {
+    id: "c2-03",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Xét trong quan hệ sản xuất tư bản chủ nghĩa, giai cấp công nhân là:",
+    options: [
+      "Giai cấp tạo ra của cải cho xã hội",
+      "Giai cấp không có tư liệu sản xuất, đi làm thuê cho nhà tư bản, bị nhà tư bản bóc lột giá trị thặng dư",
+      "Giai cấp nghèo khổ nhất",
+      "Giai cấp lương đông trong dân cư"
+    ],
+    answer: 1,
+    explanation: "Trong quan hệ sản xuất TBCN, GCCN là những người không có tư liệu sản xuất, phải bán sức lao động, bị bóc lột giá trị thặng dư."
+  },
+  {
+    id: "c2-04",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Đặc điểm sứ mệnh lịch sử của giai cấp công nhân là:",
+    options: [
+      "Xóa bỏ triệt để chế độ tư hữu về tư liệu sản xuất",
+      "Thay thế chế độ chiếm hữu nô lệ bằng chế độ xã hội chủ nghĩa",
+      "Thay thế chế độ sở hữu tư nhân này bằng một chế độ sở hữu tư nhân khác",
+      "Thay thế chế độ công hữu này bằng một chế độ công hữu khác"
+    ],
+    answer: 0,
+    explanation: "Sứ mệnh lịch sử của GCCN là xóa bỏ triệt để chế độ tư hữu về tư liệu sản xuất, xây dựng chế độ công hữu về tư liệu sản xuất."
+  },
+  {
+    id: "c2-05",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Dấu hiệu đánh dấu sự trưởng thành vượt bậc của giai cấp công nhân với tư cách là giai cấp cách mạng là:",
+    options: [
+      "Sự trưởng thành về trình độ học vấn, tay nghề",
+      "Sự ra đời của Đảng Cộng sản",
+      "Sự trưởng thành về trình độ nhận thức",
+      "Sự trưởng thành về ý thức chính trị"
+    ],
+    answer: 1,
+    explanation: "Sự ra đời của Đảng Cộng sản đánh dấu sự trưởng thành vượt bậc của GCCN với tư cách là giai cấp cách mạng."
+  },
+  {
+    id: "c2-06",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "multi",
+    pick: 2,
+    question: "Theo C.Mác và Ph.Ăngghen thì đặc điểm nổi bật của giai cấp công nhân là: (Chọn 2 đáp án đúng)",
+    options: [
+      "Giai cấp cách mạng và có tinh thần cách mạng triệt để",
+      "Có quyền sở hữu toàn bộ tư liệu sản xuất",
+      "Lao động bằng phương thức công nghiệp",
+      "Làm việc trong nông nghiệp, sử dụng công cụ thủ công"
+    ],
+    answer: [0, 2],
+    explanation: "GCCN là giai cấp cách mạng triệt để, lao động bằng phương thức công nghiệp, đại diện cho lực lượng sản xuất hiện đại."
+  },
+  {
+    id: "c2-07",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "multi",
+    pick: 2,
+    question: "Đặc điểm nào sau đây thể hiện đúng bản chất của giai cấp công nhân? (Chọn 2 đáp án đúng)",
+    options: [
+      "Không sở hữu tư liệu sản xuất, sống bằng lao động làm thuê",
+      "Có trình độ học vấn thấp, chủ yếu làm việc tay chân",
+      "Luôn gắn bó với giai cấp địa chủ và tiểu thương",
+      "Có tính tổ chức và kỷ luật cao trong lao động sản xuất"
+    ],
+    answer: [0, 3],
+    explanation: "Bản chất GCCN: không sở hữu tư liệu sản xuất, làm thuê; đồng thời có tính tổ chức, kỷ luật cao do lao động công nghiệp rèn luyện."
+  },
+  {
+    id: "c2-08",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Tìm đáp án đúng để hoàn thiện luận điểm: Cùng với sự phát triển của khoa học và công nghệ ngày càng hiện đại, giai cấp công nhân:",
+    options: [
+      "Giảm về số lượng và nâng cao về chất lượng",
+      "Tăng về số lượng và giảm về chất lượng",
+      "Tăng về số lượng và nâng cao về chất lượng",
+      "Giảm về số lượng và có trình độ sản xuất ngày càng cao"
+    ],
+    answer: 2,
+    explanation: "Cùng với sự phát triển của KHCN, GCCN tăng về số lượng và nâng cao về chất lượng (trình độ, tay nghề ngày càng cao)."
+  },
+  {
+    id: "c2-09",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Giai cấp công nhân Việt Nam ra đời vào thời gian nào?",
+    options: [
+      "Trước khi thực dân Pháp xâm lược Việt Nam",
+      "Trong cuộc khai thác thuộc địa lần thứ hai của thực dân Pháp",
+      "Những năm đầu thế kỷ XX",
+      "Trong cuộc khai thác thuộc địa lần thứ nhất của thực dân Pháp"
+    ],
+    answer: 3,
+    explanation: "GCCN Việt Nam ra đời trong cuộc khai thác thuộc địa lần thứ nhất của thực dân Pháp (cuối thế kỷ XIX - đầu thế kỷ XX)."
+  },
+  {
+    id: "c2-10",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Điền từ còn thiếu vào chỗ trống: “Giai cấp công nhân Việt Nam thực hiện sứ mệnh lịch sử cách mạng thông qua đội tiên phong của nó là …”",
+    options: [
+      "Mặt trận Tổ quốc Việt Nam",
+      "Tổ chức công đoàn",
+      "Đảng Cộng sản Việt Nam",
+      "Tổng liên đoàn lao động Việt Nam"
+    ],
+    answer: 2,
+    explanation: "GCCN Việt Nam thực hiện sứ mệnh lịch sử thông qua đội tiên phong của mình là Đảng Cộng sản Việt Nam."
+  },
+  {
+    id: "c2-11",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Nội dung trực tiếp về văn hóa tư tưởng thể hiện sứ mệnh lịch sử của giai cấp công nhân Việt Nam là:",
+    options: [
+      "Xây dựng con người mới xã hội chủ nghĩa",
+      "Xây dựng nền giáo dục hiện đại",
+      "Xây dựng nền văn hóa Việt Nam tiên tiến, đậm đà bản sắc dân tộc",
+      "Xây dựng giá trị và con người Việt Nam"
+    ],
+    answer: 2,
+    explanation: "Trên lĩnh vực văn hóa tư tưởng, GCCN Việt Nam trực tiếp góp phần xây dựng nền văn hóa Việt Nam tiên tiến, đậm đà bản sắc dân tộc."
+  },
+  {
+    id: "c2-12",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "multi",
+    pick: 2,
+    question: "Trong thời thuộc địa, giai cấp công nhân Việt Nam chủ yếu làm việc trong: (Chọn 2 đáp án đúng)",
+    options: [
+      "Nhà máy, hầm mỏ do thực dân Pháp xây dựng",
+      "Hợp tác xã nông nghiệp",
+      "Xí nghiệp thủ công truyền thống",
+      "Đồn điền cao su"
+    ],
+    answer: [0, 3],
+    explanation: "Thời thuộc địa, GCCN Việt Nam chủ yếu làm việc trong các nhà máy, hầm mỏ do thực dân Pháp xây dựng và các đồn điền cao su."
+  },
+  {
+    id: "c2-13",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "multi",
+    pick: 2,
+    question: "Giai cấp công nhân Việt Nam chủ yếu xuất thân từ tầng lớp nào? (Chọn 2 đáp án đúng)",
+    options: [
+      "Tầng lớp tư sản dân tộc",
+      "Tầng lớp địa chủ phong kiến",
+      "Giai cấp nông dân bị tước đoạt hết ruộng đất",
+      "Thợ thủ công bị phá sản"
+    ],
+    answer: [2, 3],
+    explanation: "GCCN Việt Nam chủ yếu xuất thân từ nông dân bị tước đoạt ruộng đất và thợ thủ công bị phá sản."
+  },
+  {
+    id: "c2-14",
+    topic: "Chương 2: Sứ mệnh lịch sử của GCCN",
+    type: "mcq",
+    question: "Hạn chế cơ bản lớn nhất mà giai cấp công nhân Việt Nam hiện nay cần khắc phục là gì?",
+    options: [
+      "Trình độ khoa học kỹ thuật chưa cao",
+      "Tâm lý tiểu nông",
+      "Hiệu quả lao động thấp",
+      "Số lượng còn ít"
+    ],
+    answer: 0,
+    explanation: "Hạn chế lớn nhất của GCCN Việt Nam hiện nay là trình độ học vấn, tay nghề, khoa học - kỹ thuật chưa cao so với yêu cầu công nghiệp hóa, hiện đại hóa."
+  },
+
+  // ================== CHƯƠNG 3: CNXH & THỜI KỲ QUÁ ĐỘ ==================
+  {
+    id: "c3-01",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Chủ nghĩa xã hội có mấy đặc trưng cơ bản?",
+    options: ["6", "7", "8", "9"],
+    answer: 2,
+    explanation: "Theo giáo trình CNXHKH, chủ nghĩa xã hội có 8 đặc trưng cơ bản."
+  },
+  {
+    id: "c3-02",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Đặc trưng về kinh tế của chủ nghĩa xã hội là gì?",
+    options: [
+      "Có nền kinh tế phát triển cao dựa trên lực lượng sản xuất hiện đại và chế độ công hữu về tư liệu sản xuất",
+      "Có nền kinh tế phát triển cao dựa trên lực lượng sản xuất hiện đại và chế độ tư hữu về tư liệu sản xuất",
+      "Có nền kinh tế phát triển cao",
+      "Có nền kinh tế phát triển cao dựa trên lực lượng sản xuất hiện đại"
+    ],
+    answer: 0,
+    explanation: "Đặc trưng kinh tế của CNXH là nền kinh tế phát triển cao dựa trên lực lượng sản xuất hiện đại và chế độ công hữu về tư liệu sản xuất."
+  },
+  {
+    id: "c3-03",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Hình thái kinh tế - xã hội cộng sản chủ nghĩa bắt đầu và hoàn thiện khi nào?",
+    options: [
+      "Bắt đầu từ khi Đảng cộng sản ra đời và xây dựng xong chủ nghĩa xã hội",
+      "Bắt đầu từ thời kỳ quá độ cho đến khi xây dựng xong giai đoạn cao của xã hội cộng sản",
+      "Bắt đầu từ giai đoạn thấp của xã hội cộng sản và hoàn thiện ở giai đoạn cao của xã hội cộng sản",
+      "Bắt đầu từ thời quá độ và hoàn thiện ở giai đoạn thấp của xã hội cộng sản"
+    ],
+    answer: 1,
+    explanation: "Hình thái KTXH CSCN bắt đầu từ thời kỳ quá độ và hoàn thiện khi xây dựng xong giai đoạn cao của xã hội cộng sản."
+  },
+  {
+    id: "c3-04",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Nguyên nhân sâu xa dẫn đến sự thay thế hình thái kinh tế - xã hội tư bản chủ nghĩa bằng hình thái kinh tế - xã hội cộng sản chủ nghĩa là gì?",
+    options: [
+      "Mâu thuẫn giữa lực lượng sản xuất mang tính xã hội hóa ngày càng cao với quan hệ sản xuất tư bản chủ nghĩa dựa trên chế độ chiếm hữu tư nhân tư bản chủ nghĩa về tư liệu sản xuất chủ yếu",
+      "Mâu thuẫn giữa phương thức sản xuất tư bản chủ nghĩa và phương thức sản xuất xã hội chủ nghĩa dựa trên chế độ chiếm hữu tư nhân tư bản chủ nghĩa về tư liệu sản xuất chủ yếu",
+      "Mâu thuẫn giữa các giai cấp, tầng lớp trong xã hội dựa trên chế độ chiếm hữu tư nhân tư bản chủ nghĩa về tư liệu sản xuất chủ yếu",
+      "Mâu thuẫn giữa lực lượng sản xuất và tư liệu sản xuất dựa trên chế độ chiếm hữu tư nhân tư bản chủ nghĩa"
+    ],
+    answer: 0,
+    explanation: "Nguyên nhân sâu xa là mâu thuẫn giữa lực lượng sản xuất mang tính xã hội hóa ngày càng cao với quan hệ sản xuất TBCN dựa trên chế độ chiếm hữu tư nhân TBCN về tư liệu sản xuất chủ yếu."
+  },
+  {
+    id: "c3-05",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Chọn cụm từ còn thiếu điền vào dấu “…”: “Giữa xã hội tư bản chủ nghĩa và xã hội cộng sản chủ nghĩa là một thời kỳ … từ xã hội nọ sang xã hội kia”.",
+    options: [
+      "Cải biến cách mạng",
+      "Đột phá cách mạng",
+      "Cách mạng",
+      "Quá độ"
+    ],
+    answer: 0,
+    explanation: "Theo C.Mác: giữa xã hội TBCN và xã hội CSCN là một thời kỳ cải biến cách mạng từ xã hội nọ sang xã hội kia."
+  },
+  {
+    id: "c3-06",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Kiểu quá độ lên chủ nghĩa xã hội ở Việt Nam là kiểu quá độ:",
+    options: [
+      "Quá độ khách quan",
+      "Quá độ chủ quan",
+      "Quá độ trực tiếp",
+      "Quá độ gián tiếp"
+    ],
+    answer: 3,
+    explanation: "Việt Nam thực hiện quá độ gián tiếp lên CNXH, tức bỏ qua chế độ TBCN."
+  },
+  {
+    id: "c3-07",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Cương lĩnh xây dựng đất nước trong thời kỳ quá độ lên chủ nghĩa xã hội (Bổ sung và phát triển năm 2011) được Đảng ta thông qua ở đại hội lần thứ mấy?",
+    options: [
+      "Đại hội X",
+      "Đại hội XII",
+      "Đại hội IX",
+      "Đại hội XI"
+    ],
+    answer: 3,
+    explanation: "Cương lĩnh (bổ sung, phát triển năm 2011) được thông qua tại Đại hội đại biểu toàn quốc lần thứ XI của Đảng."
+  },
+  {
+    id: "c3-08",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Tìm đáp án SAI. Đặc trưng bản chất của chủ nghĩa xã hội Việt Nam theo tinh thần Đại hội XI:",
+    options: [
+      "Có quan hệ hữu nghị và hợp tác với các nước trên thế giới",
+      "Quyền lực thuộc về giai cấp công nhân",
+      "Con người có cuộc sống ấm no, tự do, hạnh phúc, có điều kiện phát triển toàn diện",
+      "Có nền văn hóa tiên tiến đậm đà bản sắc dân tộc"
+    ],
+    answer: 1,
+    explanation: "Đặc trưng đúng là “do nhân dân làm chủ” chứ không phải “quyền lực thuộc về giai cấp công nhân”. Do đó phương án B là SAI."
+  },
+  {
+    id: "c3-09",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Thời kỳ quá độ lên chủ nghĩa xã hội ở Việt Nam là bước quá độ:",
+    options: [
+      "Trực tiếp, từ chế độ tư bản chủ nghĩa lên chế độ xã hội chủ nghĩa",
+      "Gián tiếp, bỏ qua chế độ tư bản chủ nghĩa tiến lên chủ nghĩa xã hội",
+      "Gián tiếp, bỏ qua chế độ phong kiến tiến lên chế độ xã hội chủ nghĩa",
+      "Trực tiếp, từ chế độ phong kiến tiến lên chế độ xã hội chủ nghĩa"
+    ],
+    answer: 1,
+    explanation: "Thời kỳ quá độ ở Việt Nam là quá độ gián tiếp: bỏ qua chế độ TBCN, tiến thẳng lên CNXH."
+  },
+  {
+    id: "c3-10",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Đặc điểm của thời kỳ quá độ lên chủ nghĩa xã hội trên lĩnh vực kinh tế là gì?",
+    options: [
+      "Tồn tại nhiều thành phần kinh tế",
+      "Tồn tại đấu tranh giai cấp",
+      "Tồn tại nhiều tàn dư văn hóa của chế độ cũ",
+      "Tồn tại giai cấp đối kháng"
+    ],
+    answer: 0,
+    explanation: "Trên lĩnh vực kinh tế, thời kỳ quá độ tồn tại nền kinh tế nhiều thành phần."
+  },
+  {
+    id: "c3-11",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "multi",
+    pick: 2,
+    question: "Đặc điểm về chính trị trong thời kỳ quá độ được thể hiện ở điểm nào? (Chọn 2 đáp án đúng)",
+    options: [
+      "Thiết lập chuyên chính vô sản",
+      "Hoàn toàn không còn vai trò của nhà nước",
+      "Xây dựng nền dân chủ xã hội chủ nghĩa",
+      "Đa nguyên chính trị, đa đảng đối lập"
+    ],
+    answer: [0, 2],
+    explanation: "Về chính trị, thời kỳ quá độ thiết lập nền chuyên chính vô sản và xây dựng nền dân chủ xã hội chủ nghĩa."
+  },
+  {
+    id: "c3-12",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "multi",
+    pick: 2,
+    question: "Đặc điểm nổi bật của thời kỳ quá độ lên chủ nghĩa xã hội ở Việt Nam là gì? (Chọn 2 đáp án đúng)",
+    options: [
+      "Xây dựng nhà nước pháp quyền xã hội chủ nghĩa",
+      "Có sự lãnh đạo của Đảng Cộng sản Việt Nam",
+      "Từ một nền sản xuất nhỏ tiến lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa",
+      "Phát triển chủ nghĩa tư bản trong thời gian ngắn để tích lũy"
+    ],
+    answer: [1, 2],
+    explanation: "Đặc điểm nổi bật của thời kỳ quá độ ở Việt Nam: đi lên từ nền sản xuất nhỏ, bỏ qua chế độ TBCN và có sự lãnh đạo của Đảng Cộng sản Việt Nam."
+  },
+  {
+    id: "c3-13",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "multi",
+    pick: 2,
+    question: "Hai loại quá độ từ chủ nghĩa tư bản lên chủ nghĩa cộng sản đó là: (Chọn 2 phương án đúng)",
+    options: [
+      "Quá độ không cơ bản",
+      "Quá độ trực tiếp",
+      "Quá độ gián tiếp",
+      "Quá độ cơ bản"
+    ],
+    answer: [1, 2],
+    explanation: "Có hai loại quá độ lên CNXH: quá độ trực tiếp và quá độ gián tiếp."
+  },
+  {
+    id: "c3-14",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "multi",
+    pick: 2,
+    question: "Thời kỳ quá độ lên chủ nghĩa xã hội có những mâu thuẫn nào cần giải quyết? (Chọn 2 đáp án đúng)",
+    options: [
+      "Mâu thuẫn giữa các tầng lớp lao động và tư sản hoàn toàn biến mất",
+      "Mâu thuẫn giữa cái cũ và cái mới trong xã hội",
+      "Mâu thuẫn giữa các thành phần kinh tế khác nhau trong xã hội",
+      "Mâu thuẫn giữa năng suất lao động và nhu cầu phát triển xã hội"
+    ],
+    answer: [1, 2],
+    explanation: "Trong thời kỳ quá độ tồn tại mâu thuẫn giữa cái cũ và cái mới, giữa các thành phần kinh tế khác nhau."
+  },
+  {
+    id: "c3-15",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Căn cứ vào giáo trình Chủ nghĩa xã hội khoa học, khái niệm đúng để chỉ một chế độ xã hội tốt đẹp, giai đoạn đầu của hình thái kinh tế - xã hội cộng sản chủ nghĩa là:",
+    options: [
+      "Chủ nghĩa cộng sản",
+      "Chủ nghĩa xã hội",
+      "Thời kỳ quá độ lên chủ nghĩa xã hội",
+      "Thời kỳ quá độ"
+    ],
+    answer: 1,
+    explanation: "Giai đoạn đầu (giai đoạn thấp) của hình thái KTXH CSCN là chủ nghĩa xã hội."
+  },
+  {
+    id: "c3-16",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "multi",
+    pick: 2,
+    question: "Việc “bỏ qua chế độ tư bản chủ nghĩa” ở Việt Nam có nghĩa là: (Chọn 2 đáp án đúng)",
+    options: [
+      "Tăng cường sở hữu tư nhân để phát triển lực lượng sản xuất",
+      "Loại bỏ hoàn toàn tất cả yếu tố tư bản trong nền kinh tế",
+      "Tiếp thu, kế thừa những thành tựu nhân loại đã đạt được dưới chủ nghĩa tư bản",
+      "Bỏ qua việc xác lập vị trí thống trị quan hệ sản xuất và kiến trúc thượng tầng tư bản chủ nghĩa"
+    ],
+    answer: [2, 3],
+    explanation: "“Bỏ qua chế độ TBCN” là bỏ qua việc xác lập vị trí thống trị của quan hệ sản xuất và kiến trúc thượng tầng TBCN, nhưng vẫn tiếp thu, kế thừa thành tựu nhân loại đã đạt được dưới CNTB."
+  },
+  {
+    id: "c3-17",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Chọn phương án SAI. Về quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa:",
+    options: [
+      "Quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa nhưng có sự tiếp thu, kế thừa toàn bộ các lĩnh vực đã tạo ra dưới chế độ tư bản chủ nghĩa",
+      "Quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa là con đường cách mạng tất yếu chủ quan",
+      "Con đường đi lên chủ nghĩa xã hội của nước ta là sự phát triển quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa",
+      "Quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa tức là bỏ qua việc xác lập vị trí thống trị quan hệ sản xuất và kiến trúc thượng tầng tư bản chủ nghĩa"
+    ],
+    answer: 1,
+    explanation: "Sai ở chỗ “tất yếu chủ quan” — bỏ qua chế độ TBCN là một tất yếu KHÁCH QUAN, không phải chủ quan."
+  },
+  {
+    id: "c3-18",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "mcq",
+    question: "Tại sao cho rằng con đường cách mạng Việt Nam là quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa là một tất yếu?",
+    options: [
+      "Vì không cần tạo ra biến đổi về chất trên tất cả các lĩnh vực",
+      "Vì nó phù hợp với đặc điểm của đất nước và xu thế phát triển của thời đại",
+      "Vì không cần tiếp thu thành tựu khoa học kỹ thuật dưới chế độ tư bản chủ nghĩa",
+      "Vì sự phát triển của lực lượng sản xuất ngày càng cao"
+    ],
+    answer: 1,
+    explanation: "Con đường bỏ qua chế độ TBCN là tất yếu vì nó phù hợp với đặc điểm của đất nước và xu thế phát triển của thời đại."
+  },
+  {
+    id: "c3-19",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "tf",
+    question: "Chọn Đúng hoặc Sai cho từng phát biểu sau về thời kỳ quá độ lên chủ nghĩa xã hội:",
+    statements: [
+      { text: "Trong thời kỳ quá độ từ chủ nghĩa tư bản lên chủ nghĩa xã hội tồn tại nền kinh tế nhiều thành phần.", answer: true },
+      { text: "Đặc điểm cơ bản của thời kỳ quá độ lên chủ nghĩa xã hội là thời kỳ cải tạo cách mạng sâu sắc, triệt để trên lĩnh vực kinh tế.", answer: false },
+      { text: "Trong thời kỳ quá độ từ chủ nghĩa tư bản lên chủ nghĩa xã hội tồn tại nhiều giai cấp, tầng lớp.", answer: true },
+      { text: "Trong thời kỳ quá độ từ chủ nghĩa tư bản lên chủ nghĩa xã hội tồn tại chủ yếu là tư tưởng vô sản.", answer: false }
+    ],
+    explanation: "Cải biến cách mạng diễn ra trên TẤT CẢ các lĩnh vực (không chỉ kinh tế); và trong thời kỳ quá độ còn tồn tại nhiều hệ tư tưởng, không phải chỉ có tư tưởng vô sản."
+  },
+  {
+    id: "c3-20",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "tf",
+    question: "Chọn Đúng hoặc Sai cho từng phát biểu sau về kinh tế trong thời kỳ quá độ:",
+    statements: [
+      { text: "Thời kỳ quá độ lên chủ nghĩa xã hội có sự tồn tại song song giữa các yếu tố cũ và mới.", answer: true },
+      { text: "Trong thời kỳ quá độ lên chủ nghĩa xã hội, kinh tế tư nhân bị xóa bỏ hoàn toàn.", answer: false },
+      { text: "Thời kỳ quá độ lên chủ nghĩa xã hội chỉ có kinh tế nhà nước tồn tại và phát triển.", answer: false },
+      { text: "Trong thời kỳ quá độ lên chủ nghĩa xã hội tồn tại nhiều thành phần kinh tế.", answer: true }
+    ],
+    explanation: "Thời kỳ quá độ tồn tại nền kinh tế nhiều thành phần và có sự đan xen giữa cái cũ và cái mới; không xóa bỏ hoàn toàn kinh tế tư nhân."
+  },
+  {
+    id: "c3-21",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "tf",
+    question: "Chọn Đúng hoặc Sai cho từng phát biểu sau về quá độ lên chủ nghĩa xã hội ở Việt Nam:",
+    statements: [
+      { text: "Quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa là sự lựa chọn duy nhất đúng, khoa học, phản ánh đúng quy luật phát triển khách quan của cách mạng Việt Nam trong thời đại ngày nay.", answer: true },
+      { text: "Chủ nghĩa xã hội Việt Nam không bao gồm việc xây dựng nền kinh tế thị trường.", answer: false },
+      { text: "Nước ta thực hiện quá độ trực tiếp đi lên chủ nghĩa xã hội.", answer: false },
+      { text: "Phát triển nền kinh tế thị trường định hướng xã hội chủ nghĩa là một trong những phương hướng xây dựng chủ nghĩa xã hội Việt Nam.", answer: true }
+    ],
+    explanation: "Việt Nam thực hiện quá độ GIÁN TIẾP và xây dựng nền kinh tế thị trường định hướng XHCN."
+  },
+  {
+    id: "c3-22",
+    topic: "Chương 3: CNXH & Thời kỳ quá độ",
+    type: "drag",
+    question: "Kéo thả các đáp án khớp với các phát biểu (1–3) dưới đây:",
+    pairs: [
+      {
+        term: "Quá độ gián tiếp",
+        definition: "Con đường từ chủ nghĩa tư bản lên chủ nghĩa cộng sản đối với những nước CHƯA trải qua chủ nghĩa tư bản phát triển."
+      },
+      {
+        term: "Quá độ trực tiếp",
+        definition: "Con đường từ chủ nghĩa tư bản lên chủ nghĩa cộng sản đối với những nước ĐÃ trải qua chủ nghĩa tư bản phát triển."
+      },
+      {
+        term: "Thời kỳ quá độ",
+        definition: "Thực chất của … lên chủ nghĩa xã hội là thời kỳ cải biến cách mạng từ xã hội tiền tư bản chủ nghĩa và tư bản chủ nghĩa sang xã hội xã hội chủ nghĩa."
+      }
+    ],
+    explanation: "Quá độ gián tiếp áp dụng cho nước chưa qua CNTB phát triển; quá độ trực tiếp cho nước đã qua CNTB phát triển; còn “thời kỳ quá độ” là thời kỳ cải biến cách mạng sang xã hội XHCN."
+  },
+
+  // ================== CHƯƠNG 4: DÂN CHỦ XHCN & NHÀ NƯỚC XHCN ==================
+  {
+    id: "c4-01",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Theo nguyên nghĩa tiếng Hy Lạp thì “Dân chủ” là gì?",
+    options: [
+      "Là quyền của con người",
+      "Là quyền lực thuộc về nhân dân",
+      "Là trật tự xã hội",
+      "Là quyền tự do của mọi người"
+    ],
+    answer: 1,
+    explanation: "Theo nguyên nghĩa Hy Lạp, “dân chủ” (demokratia) là quyền lực thuộc về nhân dân."
+  },
+  {
+    id: "c4-02",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Bản chất kinh tế của nền dân chủ xã hội chủ nghĩa là:",
+    options: [
+      "Thực hiện chế độ tư hữu về công cụ sản xuất chủ yếu",
+      "Thực hiện chế độ công hữu về tư liệu sản xuất",
+      "Thực hiện chế độ phân phối “Làm theo năng lực, hưởng theo nhu cầu”",
+      "Thực hiện chế độ công hữu về tư liệu sản xuất chủ yếu và thực hiện chế độ phân phối lợi ích theo kết quả lao động là chủ yếu"
+    ],
+    answer: 3,
+    explanation: "Bản chất kinh tế của dân chủ XHCN là chế độ công hữu về tư liệu sản xuất chủ yếu và phân phối lợi ích theo kết quả lao động là chủ yếu."
+  },
+  {
+    id: "c4-03",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Lịch sử loài người đã từng xuất hiện các nền dân chủ nào?",
+    options: [
+      "Nền dân chủ nguyên thủy, nền dân chủ chủ nô, nền dân chủ phong kiến, nền dân chủ tư sản, nền dân chủ vô sản",
+      "Nền dân chủ chủ nô, nền dân chủ tư sản, nền dân chủ xã hội chủ nghĩa",
+      "Nền dân chủ chủ nô, nền dân chủ phong kiến, nền dân chủ tư sản",
+      "Nền dân chủ chủ nô, nền dân chủ phong kiến, nền dân chủ tư sản, nền dân chủ vô sản"
+    ],
+    answer: 1,
+    explanation: "Lịch sử đã từng có ba nền dân chủ: dân chủ chủ nô, dân chủ tư sản và dân chủ xã hội chủ nghĩa."
+  },
+  {
+    id: "c4-04",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Bản chất chính trị của nền dân chủ xã hội chủ nghĩa thể hiện như thế nào?",
+    options: [
+      "Nền dân chủ tập trung vào phát triển kinh tế tư nhân và bảo vệ lợi ích của tầng lớp giàu có",
+      "Nhà nước chủ yếu thực hiện các quyết định chính trị mà không cần sự đồng thuận hoặc tham gia của người dân",
+      "Quyền lực và lợi ích thuộc về toàn thể nhân dân lao động, trong đó có giai cấp công nhân, dưới sự lãnh đạo của Đảng Cộng sản",
+      "Quyền lực thuộc về một cá nhân duy nhất, không có sự tham gia của quần chúng nhân dân"
+    ],
+    answer: 2,
+    explanation: "Bản chất chính trị của dân chủ XHCN: quyền lực thuộc về nhân dân lao động, do Đảng Cộng sản lãnh đạo."
+  },
+  {
+    id: "c4-05",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Đặc điểm của nhà nước pháp quyền xã hội chủ nghĩa là gì?",
+    options: [
+      "Quản lý xã hội bằng niềm tin",
+      "Quản lý xã hội bằng mệnh lệnh hành chính",
+      "Quản lý xã hội bằng đường lối",
+      "Quản lý xã hội bằng pháp luật"
+    ],
+    answer: 3,
+    explanation: "Nhà nước pháp quyền XHCN quản lý xã hội bằng hiến pháp và pháp luật."
+  },
+  {
+    id: "c4-06",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Kiểu nhà nước nào sau đây được V.I. Lênin gọi là nhà nước “nửa nhà nước”?",
+    options: [
+      "Nhà nước tư sản",
+      "Nhà nước chủ nô",
+      "Nhà nước phong kiến",
+      "Nhà nước xã hội chủ nghĩa"
+    ],
+    answer: 3,
+    explanation: "Lênin gọi nhà nước XHCN là “nửa nhà nước” vì nó là nhà nước đang trong quá trình tự tiêu vong dần."
+  },
+  {
+    id: "c4-07",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Căn cứ vào phạm vi tác động của quyền lực nhà nước, chức năng của nhà nước được chia thành:",
+    options: [
+      "Chức năng giai cấp, xã hội",
+      "Chức năng đối nội và chức năng đối ngoại",
+      "Chức năng trấn áp và chức năng tổ chức, xây dựng",
+      "Chức năng chính trị, kinh tế, văn hóa, xã hội"
+    ],
+    answer: 1,
+    explanation: "Theo phạm vi tác động của quyền lực, chức năng nhà nước gồm chức năng đối nội và đối ngoại."
+  },
+  {
+    id: "c4-08",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Bản chất dân chủ xã hội chủ nghĩa ở Việt Nam được thực hiện thông qua:",
+    options: [
+      "Các hình thức dân chủ không nguyên",
+      "Các hình thức dân chủ gián tiếp và trực tiếp",
+      "Các hình thức dân chủ tự nguyện",
+      "Các hình thức dân chủ cơ bản và không cơ bản"
+    ],
+    answer: 1,
+    explanation: "Dân chủ XHCN ở Việt Nam được thực hiện qua hai hình thức: dân chủ trực tiếp và dân chủ gián tiếp (đại diện)."
+  },
+  {
+    id: "c4-09",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Nền dân chủ xã hội chủ nghĩa ở Việt Nam có điểm khác biệt cơ bản nào so với các nền dân chủ trước đây?",
+    options: [
+      "Là nền dân chủ rộng rãi cho giai cấp công nhân và nhân dân lao động",
+      "Là nền dân chủ thuần túy",
+      "Còn mang tính giai cấp",
+      "Là nền dân chủ phi lịch sử"
+    ],
+    answer: 0,
+    explanation: "Dân chủ XHCN là nền dân chủ rộng rãi, toàn diện cho đông đảo nhân dân lao động."
+  },
+  {
+    id: "c4-10",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Tại sao quyền lực nhà nước ở Việt Nam được tổ chức theo nguyên tắc thống nhất?",
+    options: [
+      "Để kiểm soát chặt chẽ các hoạt động kinh tế",
+      "Để giảm thiểu vai trò của các tổ chức phi chính phủ",
+      "Đảm bảo sự phối hợp và kiểm soát giữa các cơ quan lập pháp, hành pháp và tư pháp",
+      "Để tăng cường kiểm soát của nhà nước"
+    ],
+    answer: 2,
+    explanation: "Quyền lực nhà nước thống nhất để đảm bảo sự phối hợp và kiểm soát lẫn nhau giữa lập pháp, hành pháp và tư pháp."
+  },
+  {
+    id: "c4-11",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "mcq",
+    question: "Mục tiêu chính của việc xây dựng Nhà nước pháp quyền xã hội chủ nghĩa Việt Nam là:",
+    options: [
+      "Phát triển kinh tế thị trường tự do",
+      "Giảm thiểu sự can thiệp của nhà nước",
+      "Tăng cường sự kiểm soát của nhà nước",
+      "Phục vụ lợi ích của giai cấp công nhân và nhân dân lao động"
+    ],
+    answer: 3,
+    explanation: "Mục tiêu của nhà nước pháp quyền XHCN Việt Nam là phục vụ lợi ích của giai cấp công nhân và nhân dân lao động."
+  },
+  {
+    id: "c4-12",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "multi",
+    pick: 2,
+    question: "Dân chủ trong xã hội nguyên thủy được thể hiện như thế nào? (Chọn 2 đáp án đúng)",
+    options: [
+      "Hình thành cơ chế chính trị phức tạp",
+      "Không có sự phân chia giai cấp và quyền lực",
+      "Quyền lực tập trung vào một số cá nhân",
+      "Mọi người đều bình đẳng trong quyết định các vấn đề chung"
+    ],
+    answer: [1, 3],
+    explanation: "Trong xã hội nguyên thủy chưa có phân chia giai cấp, mọi người bình đẳng trong việc quyết định các vấn đề chung."
+  },
+  {
+    id: "c4-13",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "multi",
+    pick: 2,
+    question: "Bản chất của nền dân chủ xã hội chủ nghĩa là: (Chọn 2 đáp án đúng)",
+    options: [
+      "Nền dân chủ của giai cấp tư sản",
+      "Nền dân chủ mang tính cá nhân",
+      "Nền dân chủ mang tính tập thể",
+      "Nền dân chủ của đa số nhân dân lao động"
+    ],
+    answer: [2, 3],
+    explanation: "Dân chủ XHCN là nền dân chủ của đa số nhân dân lao động, mang tính tập thể."
+  },
+  {
+    id: "c4-14",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "multi",
+    pick: 2,
+    question: "Đặc điểm nổi bật của nền dân chủ xã hội chủ nghĩa là gì? (Chọn 2 đáp án đúng)",
+    options: [
+      "Thực hiện quyền làm chủ tập thể của nhân dân",
+      "Phân biệt rõ ràng giữa các tầng lớp xã hội",
+      "Đặt quyền lợi của nhân dân lao động lên hàng đầu",
+      "Tôn trọng quyền sở hữu tư nhân tuyệt đối"
+    ],
+    answer: [0, 2],
+    explanation: "Dân chủ XHCN thực hiện quyền làm chủ tập thể của nhân dân và đặt quyền lợi nhân dân lao động lên hàng đầu."
+  },
+  {
+    id: "c4-15",
+    topic: "Chương 4: Dân chủ XHCN & Nhà nước XHCN",
+    type: "multi",
+    pick: 2,
+    question: "Nhà nước pháp quyền xã hội chủ nghĩa Việt Nam được xây dựng dựa trên những nguyên tắc nào sau đây? (Chọn 2 đáp án đúng)",
+    options: [
+      "Đảng lãnh đạo nhà nước theo phương thức mệnh lệnh",
+      "Quyền lực nhà nước là tối cao, không cần kiểm soát",
+      "Nhà nước quản lý xã hội bằng hiến pháp, pháp luật",
+      "Quyền lực nhà nước thống nhất, có phân công, phối hợp và kiểm soát"
+    ],
+    answer: [2, 3],
+    explanation: "Nhà nước pháp quyền XHCN Việt Nam quản lý xã hội bằng hiến pháp, pháp luật và tổ chức quyền lực thống nhất, có phân công, phối hợp, kiểm soát."
+  }
+    ]
+  },
+
+  // Các môn học khác để trống — thêm câu hỏi trong tab "Quản lý câu hỏi".
+  {
+    id: "triet-hoc",
+    name: "Triết học Mác - Lênin",
+    icon: "🧭",
+    questions: []
+  },
+  {
+    id: "kinh-te-chinh-tri",
+    name: "Kinh tế chính trị Mác - Lênin",
+    icon: "📈",
+    questions: []
+  },
+  {
+    id: "lich-su-dang",
+    name: "Lịch sử Đảng Cộng sản Việt Nam",
+    icon: "🚩",
+    questions: []
+  },
+  {
+    id: "tu-tuong-hcm",
+    name: "Tư tưởng Hồ Chí Minh",
+    icon: "⭐",
+    questions: []
+  }
+];
+
+</script>
+  <script>
+/* ============================================================
+   Ứng dụng "Tạo câu hỏi & ôn tập" — logic chính
+   Hỗ trợ nhiều MÔN HỌC: mỗi môn là một option; trong môn có các chủ đề (chương).
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "quiz_subjects_v1";
+  var subjects = [];
+  var currentSubjectId = null;
+
+  var quiz = {
+    questions: [],
+    index: 0,
+    results: [],
+    answered: false,
+    flags: {}
+  };
+
+  var dragState = { assigned: {}, selected: null, termOrder: [] };
+  var editingId = null;        // index trong mảng questions của môn đang sửa
+  var editingSubjectId = null; // id môn đang sửa
+  var subjectEditId = null;    // id môn đang đổi tên (modal môn học)
+
+  /* ---------------- Cấu hình Supabase + xác thực ---------------- */
+  var APP_CONFIG = window.APP_CONFIG || {};
+  var SUPABASE_URL = APP_CONFIG.SUPABASE_URL || "";
+  var SUPABASE_ANON_KEY = APP_CONFIG.SUPABASE_ANON_KEY || "";
+  var db = null;
+  var userId = null; // id người dùng đang đăng nhập
+
+  function useSupabase() {
+    return !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+  }
+  function loadSupabaseClient() {
+    if (window.supabase && window.supabase.createClient) return Promise.resolve(window.supabase);
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+      s.onload = function () { resolve(window.supabase); };
+      s.onerror = function () { reject(new Error("Không tải được Supabase client")); };
+      document.head.appendChild(s);
+    });
+  }
+  function cacheKey() {
+    return STORAGE_KEY + (userId ? ":" + userId : "");
+  }
+
+  /* ---------------- Dữ liệu ---------------- */
+  function loadLocalSubjects() {
+    try {
+      var raw = localStorage.getItem(cacheKey());
+      if (!raw) raw = localStorage.getItem(STORAGE_KEY); // key cũ (di trú lần đầu)
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch (e) { /* bỏ qua, dùng seed */ }
+    var seed = JSON.parse(JSON.stringify(window.SEED_SUBJECTS || []));
+    // Di trú dữ liệu bản cũ (mảng câu hỏi phẳng của CNXHKH) vào môn đầu tiên
+    try {
+      var old = localStorage.getItem("cnxhkh_bank_v2");
+      if (old) {
+        var oldQ = JSON.parse(old);
+        if (Array.isArray(oldQ) && oldQ.length && seed.length) {
+          seed[0].questions = oldQ;
+          localStorage.setItem(cacheKey(), JSON.stringify(seed));
+        }
+      }
+    } catch (e2) { /* bỏ qua */ }
+    return seed;
+  }
+
+  function loadSubjects() {
+    if (useSupabase() && userId) {
+      return db.from("app_data").select("data").eq("user_id", userId).maybeSingle().then(function (res) {
+        if (res.error) throw res.error;
+        if (res.data && Array.isArray(res.data.data)) {
+          subjects = res.data.data;
+          return;
+        }
+        // Chưa có dữ liệu trên cloud -> nạp từ local rồi đồng bộ lên
+        subjects = loadLocalSubjects();
+        saveSubjects();
+      }).catch(function () {
+        // Lỗi mạng -> dùng local
+        subjects = loadLocalSubjects();
+      });
+    }
+    subjects = loadLocalSubjects();
+    return Promise.resolve();
+  }
+
+  function saveSubjects() {
+    try { localStorage.setItem(cacheKey(), JSON.stringify(subjects)); } catch (e) { /* bộ nhớ trình duyệt không khả dụng */ }
+    if (useSupabase() && db && userId) {
+      db.from("app_data").upsert({ user_id: userId, data: subjects, updated_at: new Date().toISOString() })
+        .then(function () {}, function () { /* bỏ qua lỗi mạng */ });
+    }
+  }
+  function resetSubjects() {
+    subjects = JSON.parse(JSON.stringify(window.SEED_SUBJECTS || []));
+    currentSubjectId = subjects.length ? subjects[0].id : null;
+    saveSubjects();
+  }
+  function findSubject(id) {
+    for (var i = 0; i < subjects.length; i++) if (subjects[i].id === id) return subjects[i];
+    return null;
+  }
+  function currentSubject() {
+    return findSubject(currentSubjectId) || subjects[0] || null;
+  }
+  function getBank() {
+    var s = currentSubject();
+    return s && s.questions ? s.questions : [];
+  }
+  function uid() {
+    return "q" + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36);
+  }
+  function subjectUid() {
+    return "s" + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36);
+  }
+
+  // Thông báo ngắn (thay cho toast() — không chạy được trong khung bảo mật của Artifact)
+  var toastTimer = null;
+  function toast(msg) {
+    var el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2600);
+  }
+
+  // Hộp xác nhận trong trang (thay cho confirm())
+  function askConfirm(msg, okLabel, onYes) {
+    document.getElementById("confirmMsg").textContent = msg;
+    var ok = document.getElementById("confirmOk");
+    ok.textContent = okLabel || "Xóa";
+    document.getElementById("confirmModal").classList.remove("hidden");
+    ok.onclick = function () {
+      document.getElementById("confirmModal").classList.add("hidden");
+      onYes && onYes();
+    };
+    document.getElementById("confirmCancel").onclick = function () {
+      document.getElementById("confirmModal").classList.add("hidden");
+    };
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function typeLabel(t) {
+    return { mcq: "Trắc nghiệm", multi: "Nhiều đáp án", tf: "Đúng/Sai", drag: "Kéo thả" }[t] || t;
+  }
+
+  /* ---------------- Điều hướng (sidebar) ---------------- */
+  function openSidebar() {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebarBackdrop").classList.add("show");
+  }
+  function closeSidebar() {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebarBackdrop").classList.remove("show");
+  }
+  var sideItems = document.querySelectorAll(".side-nav .side-item");
+  sideItems.forEach(function (item) {
+    item.addEventListener("click", function () {
+      setActiveView(item.dataset.view);
+      closeSidebar();
+    });
+  });
+  function setActiveView(name) {
+    sideItems.forEach(function (it) { it.classList.toggle("active", it.dataset.view === name); });
+    showView(name);
+  }
+  function showView(name) {
+    document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+    document.getElementById("view-" + name).classList.add("active");
+    if (name === "quiz") renderHome();
+    if (name === "manage") renderManage();
+  }
+  var btnMenu = document.getElementById("btnMenu");
+  if (btnMenu) btnMenu.addEventListener("click", openSidebar);
+  var sidebarBackdrop = document.getElementById("sidebarBackdrop");
+  if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeSidebar);
+
+  /* ---------------- Trang chọn môn học / chủ đề ---------------- */
+  function renderHome() {
+    renderSubjectList();
+    renderTopicList();
+    renderSidebarSubjects();
+  }
+
+  function renderSubjectList() {
+    var list = document.getElementById("subjectList");
+    if (!list) return;
+    list.innerHTML = "";
+    subjects.forEach(function (s) {
+      var div = document.createElement("div");
+      div.className = "subject-item" + (s.id === currentSubjectId ? " selected" : "");
+      div.innerHTML = '<span class="subject-icon"></span>' +
+        '<span class="s-body"><span class="s-name"></span><span class="s-count"></span></span>';
+      div.querySelector(".subject-icon").textContent = s.icon || "📘";
+      div.querySelector(".s-name").textContent = s.name;
+      div.querySelector(".s-count").textContent = (s.questions ? s.questions.length : 0) + " câu";
+      div.addEventListener("click", function () {
+        currentSubjectId = s.id;
+        renderHome();
+      });
+      list.appendChild(div);
+    });
+  }
+
+  function renderTopicList() {
+    var list = document.getElementById("topicList");
+    var empty = document.getElementById("topicEmpty");
+    if (!list) return;
+    list.innerHTML = "";
+    var bank = getBank();
+    var topics = {};
+    bank.forEach(function (q) {
+      var t = q.topic || "Chung";
+      topics[t] = (topics[t] || 0) + 1;
+    });
+    var allRow = topicRow("🎯 Tất cả câu hỏi", bank.length, null);
+    list.appendChild(allRow);
+    Object.keys(topics).forEach(function (t) {
+      list.appendChild(topicRow(t, topics[t], t));
+    });
+    if (empty) empty.classList.toggle("hidden", bank.length > 0);
+  }
+
+  function renderSidebarSubjects() {
+    var list = document.getElementById("sideSubjectList");
+    if (!list) return;
+    list.innerHTML = "";
+    subjects.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "side-topic" + (s.id === currentSubjectId ? " active" : "");
+      b.innerHTML = '<span>' + escapeHtml(s.name) + '</span><span class="st-count">' + (s.questions ? s.questions.length : 0) + "</span>";
+      b.addEventListener("click", function () {
+        currentSubjectId = s.id;
+        setActiveView("quiz");
+        closeSidebar();
+      });
+      list.appendChild(b);
+    });
+  }
+
+  function topicRow(name, count, topic) {
+    var div = document.createElement("div");
+    div.className = "topic-item";
+    div.innerHTML = '<span class="t-name"></span><span class="t-count"></span>';
+    div.querySelector(".t-name").textContent = name;
+    div.querySelector(".t-count").textContent = count + " câu";
+    div.addEventListener("click", function () { startQuiz(topic); });
+    return div;
+  }
+
+  function startQuiz(topic) {
+    var qs = getBank();
+    if (topic) qs = qs.filter(function (q) { return q.topic === topic; });
+    if (!qs.length) { toast("Môn học này chưa có câu hỏi nào để ôn."); return; }
+    if (document.getElementById("shuffleToggle").checked) qs = shuffle(qs);
+    quiz.questions = qs;
+    quiz.index = 0;
+    quiz.results = [];
+    quiz.answered = false;
+    quiz.flags = {};
+
+    document.getElementById("quiz-home").classList.add("hidden");
+    document.getElementById("quiz-result").classList.add("hidden");
+    document.getElementById("quiz-run").classList.remove("hidden");
+    renderQuestion();
+  }
+
+  document.getElementById("btnBackHome").addEventListener("click", goHome);
+  document.getElementById("btnResultHome").addEventListener("click", goHome);
+  function goHome() {
+    document.getElementById("quiz-run").classList.add("hidden");
+    document.getElementById("quiz-result").classList.add("hidden");
+    document.getElementById("quiz-home").classList.remove("hidden");
+    renderHome();
+  }
+
+  /* ---------------- Render câu hỏi ---------------- */
+  function renderQuestion() {
+    var q = quiz.questions[quiz.index];
+    quiz.answered = false;
+    dragState = { assigned: {}, selected: null, termOrder: [] };
+
+    document.getElementById("progressText").textContent =
+      "Câu " + (quiz.index + 1) + " / " + quiz.questions.length;
+    document.getElementById("progressFill").style.width =
+      (quiz.index / quiz.questions.length * 100) + "%";
+
+    var card = document.getElementById("questionCard");
+    var subjName = currentSubject() ? currentSubject().name : "";
+    var topicLabel = (subjName ? subjName + " · " : "") + (q.topic || "Chung");
+    var tag = '<span class="q-tag">' + escapeHtml(topicLabel) +
+              '<span class="q-type-tag">' + typeLabel(q.type) + "</span></span>";
+    var html = tag + '<p class="q-text">' + escapeHtml(q.question) + "</p>";
+
+    if (q.type === "mcq") html += renderMcq(q);
+    else if (q.type === "multi") html += renderMulti(q);
+    else if (q.type === "tf") html += renderTf(q);
+    else if (q.type === "drag") html += renderDrag(q);
+
+    card.innerHTML = html;
+    bindQuestionEvents(q);
+
+    document.getElementById("btnCheck").classList.remove("hidden");
+    var btnNext = document.getElementById("btnNext");
+    btnNext.textContent = (quiz.index === quiz.questions.length - 1) ? "Kết quả →" : "Sau →";
+    var btnPrev = document.getElementById("btnPrev");
+    if (btnPrev) btnPrev.disabled = (quiz.index === 0);
+    var fb = document.getElementById("feedback");
+    fb.className = "feedback";
+    fb.innerHTML = "";
+
+    var flagBtn = document.getElementById("btnFlag");
+    if (flagBtn) {
+      var flagged = !!quiz.flags[quiz.index];
+      flagBtn.textContent = flagged ? "★ Đã đánh dấu" : "⭐ Đánh dấu khó";
+      flagBtn.classList.toggle("flagged", flagged);
+    }
+  }
+
+  function renderMcq(q) {
+    var html = "";
+    q.options.forEach(function (opt, i) {
+      html += '<div class="option" data-i="' + i + '">' +
+        '<span class="opt-letter">' + String.fromCharCode(65 + i) + "</span>" +
+        "<span>" + escapeHtml(opt) + "</span></div>";
+    });
+    return html;
+  }
+
+  function renderMulti(q) {
+    var html = '<p class="q-text" style="font-weight:400;font-size:13.5px;color:var(--muted)">Chọn ' +
+      (q.pick || 2) + " đáp án đúng</p>";
+    q.options.forEach(function (opt, i) {
+      html += '<div class="option" data-i="' + i + '">' +
+        '<span class="opt-letter">' + String.fromCharCode(65 + i) + "</span>" +
+        "<span>" + escapeHtml(opt) + "</span></div>";
+    });
+    return html;
+  }
+
+  function renderTf(q) {
+    var html = "";
+    q.statements.forEach(function (st, i) {
+      html += '<div class="tf-statement" data-i="' + i + '">' +
+        '<div class="tf-text"><strong>' + (i + 1) + ".</strong> " + escapeHtml(st.text) + "</div>" +
+        '<div class="tf-btns">' +
+        '<button data-val="true">Đúng</button>' +
+        '<button data-val="false">Sai</button>' +
+        "</div></div>";
+    });
+    return html;
+  }
+
+  function renderDrag(q) {
+    dragState.termOrder = shuffle(q.pairs.map(function (_, i) { return i; }));
+    var html = '<div class="drag-zone">';
+    html += '<div class="drag-pool"><h4>Kéo thả hoặc bấm chọn</h4><p class="drag-hint">Trên điện thoại: bấm chọn một đáp án, rồi bấm vào ô tương ứng.</p>';
+    dragState.termOrder.forEach(function (ti) {
+      html += '<div class="chip" draggable="true" data-term="' + ti + '">' +
+        escapeHtml(q.pairs[ti].term) + "</div>";
+    });
+    html += "</div><div class='drag-targets'><h4>Thả vào phát biểu tương ứng</h4>";
+    q.pairs.forEach(function (p, i) {
+      html += '<div class="drag-target" data-target="' + i + '">' +
+        '<div class="target-text">' + escapeHtml(p.definition) + "</div>" +
+        '<div class="slot" data-slot="' + i + '"><span class="ph">— Thả vào đây —</span></div>' +
+        "</div>";
+    });
+    html += "</div></div>";
+    return html;
+  }
+
+  /* ---------------- Bind sự kiện câu hỏi ---------------- */
+  function bindQuestionEvents(q) {
+    var card = document.getElementById("questionCard");
+
+    if (q.type === "mcq") {
+      card.querySelectorAll(".option").forEach(function (el) {
+        el.addEventListener("click", function () {
+          if (quiz.answered) return;
+          card.querySelectorAll(".option").forEach(function (o) { o.classList.remove("selected"); });
+          el.classList.add("selected");
+        });
+      });
+    }
+
+    if (q.type === "multi") {
+      var pick = q.pick || 2;
+      card.querySelectorAll(".option").forEach(function (el) {
+        el.addEventListener("click", function () {
+          if (quiz.answered) return;
+          var selected = card.querySelectorAll(".option.selected").length;
+          if (el.classList.contains("selected")) { el.classList.remove("selected"); return; }
+          if (selected >= pick) return;
+          el.classList.add("selected");
+        });
+      });
+    }
+
+    if (q.type === "tf") {
+      card.querySelectorAll(".tf-statement").forEach(function (st) {
+        st.querySelectorAll("button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            if (quiz.answered) return;
+            st.querySelectorAll("button").forEach(function (b) {
+              b.classList.remove("on-true", "on-false");
+            });
+            btn.classList.add(btn.dataset.val === "true" ? "on-true" : "on-false");
+          });
+        });
+      });
+    }
+
+    if (q.type === "drag") {
+      bindDragEvents(card, q);
+    }
+  }
+
+  function bindDragEvents(card, q) {
+    // HTML5 drag & drop
+    card.querySelectorAll(".chip").forEach(function (chip) {
+      chip.addEventListener("dragstart", function (e) {
+        e.dataTransfer.setData("text/plain", chip.dataset.term);
+        chip.classList.add("selected-chip");
+      });
+      chip.addEventListener("dragend", function () { chip.classList.remove("selected-chip"); });
+      // click để chọn
+      chip.addEventListener("click", function () {
+        if (quiz.answered) return;
+        var ti = parseInt(chip.dataset.term, 10);
+        if (dragState.assigned && Object.values(dragState.assigned).indexOf(ti) !== -1) return;
+        card.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("selected-chip"); });
+        dragState.selected = ti;
+        chip.classList.add("selected-chip");
+      });
+    });
+
+    card.querySelectorAll(".drag-target").forEach(function (target) {
+      target.addEventListener("dragover", function (e) { e.preventDefault(); });
+      target.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var ti = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        placeTerm(card, q, ti, parseInt(target.dataset.target, 10));
+      });
+      target.addEventListener("click", function () {
+        if (quiz.answered) return;
+        if (dragState.selected == null) return;
+        placeTerm(card, q, dragState.selected, parseInt(target.dataset.target, 10));
+      });
+    });
+  }
+
+  function placeTerm(card, q, termIdx, targetIdx) {
+    if (quiz.answered) return;
+    // trả term cũ trong slot này về pool
+    for (var key in dragState.assigned) {
+      if (dragState.assigned[key] === termIdx) delete dragState.assigned[key];
+    }
+    dragState.assigned[targetIdx] = termIdx;
+    dragState.selected = null;
+    refreshDrag(card, q);
+  }
+
+  function removeTerm(card, q, targetIdx) {
+    if (quiz.answered) return;
+    delete dragState.assigned[targetIdx];
+    refreshDrag(card, q);
+  }
+
+  function refreshDrag(card, q) {
+    card.querySelectorAll(".chip").forEach(function (chip) {
+      var ti = parseInt(chip.dataset.term, 10);
+      var used = Object.values(dragState.assigned).indexOf(ti) !== -1;
+      chip.classList.toggle("used", used);
+      chip.classList.remove("selected-chip");
+    });
+    card.querySelectorAll(".drag-target").forEach(function (target) {
+      var i = parseInt(target.dataset.target, 10);
+      var slot = target.querySelector(".slot");
+      var assigned = dragState.assigned[i];
+      if (assigned != null) {
+        slot.classList.add("filled");
+        slot.innerHTML = '<span>' + escapeHtml(q.pairs[assigned].term) +
+          '</span><span class="rm" data-rm="' + i + '">✕</span>';
+      } else {
+        slot.classList.remove("filled");
+        slot.innerHTML = '<span class="ph">— Thả vào đây —</span>';
+      }
+    });
+    card.querySelectorAll(".rm").forEach(function (rm) {
+      rm.addEventListener("click", function (e) {
+        e.stopPropagation();
+        removeTerm(card, q, parseInt(rm.dataset.rm, 10));
+      });
+    });
+  }
+
+  /* ---------------- Kiểm tra đáp án ---------------- */
+  function getUserAnswer(q) {
+    var card = document.getElementById("questionCard");
+    if (q.type === "mcq") {
+      var sel = card.querySelector(".option.selected");
+      return sel ? parseInt(sel.dataset.i, 10) : null;
+    }
+    if (q.type === "multi") {
+      var idx = [];
+      card.querySelectorAll(".option.selected").forEach(function (o) { idx.push(parseInt(o.dataset.i, 10)); });
+      return idx.sort(function (a, b) { return a - b; });
+    }
+    if (q.type === "tf") {
+      var arr = [];
+      card.querySelectorAll(".tf-statement").forEach(function (st) {
+        var on = st.querySelector("button.on-true, button.on-false");
+        arr.push(on ? on.dataset.val === "true" : null);
+      });
+      return arr;
+    }
+    if (q.type === "drag") {
+      var assigned = {};
+      for (var k in dragState.assigned) assigned[k] = dragState.assigned[k];
+      return assigned;
+    }
+    return null;
+  }
+
+  function isCorrect(q, ans) {
+    if (q.type === "mcq") return ans === q.answer;
+    if (q.type === "multi") {
+      var a = q.answer.slice().sort(function (x, y) { return x - y; });
+      return JSON.stringify(ans) === JSON.stringify(a);
+    }
+    if (q.type === "tf") {
+      return q.statements.every(function (st, i) { return ans[i] === st.answer; });
+    }
+    if (q.type === "drag") {
+      return q.pairs.every(function (_, i) { return ans[i] === i; });
+    }
+    return false;
+  }
+
+  document.getElementById("btnCheck").addEventListener("click", function () {
+    if (quiz.answered) return;
+    var q = quiz.questions[quiz.index];
+    var ans = getUserAnswer(q);
+    var card = document.getElementById("questionCard");
+    var fb = document.getElementById("feedback");
+
+    // kiểm tra đã trả lời đủ chưa
+    var incomplete = false;
+    if (q.type === "mcq" && ans == null) incomplete = true;
+    if (q.type === "multi" && ans.length !== (q.pick || 2)) incomplete = true;
+    if (q.type === "tf" && ans.some(function (a) { return a == null; })) incomplete = true;
+    if (q.type === "drag" && Object.keys(ans).length !== q.pairs.length) incomplete = true;
+    if (incomplete) {
+      fb.className = "feedback show no";
+      fb.innerHTML = "⚠️ Bạn chưa trả lời đủ. Hãy chọn đầy đủ đáp án.";
+      return;
+    }
+
+    var ok = isCorrect(q, ans);
+    quiz.answered = true;
+    quiz.results[quiz.index] = ok;
+    markCorrectAnswer(q, ans);
+
+    fb.className = "feedback show " + (ok ? "ok" : "no");
+    var msg = ok ? "✅ Chính xác!" : "❌ Chưa đúng.";
+    fb.innerHTML = msg + (q.explanation ? '<div class="fb-explain"><strong>Giải thích:</strong> ' + escapeHtml(q.explanation) + "</div>" : "");
+
+    document.getElementById("btnCheck").classList.add("hidden");
+  });
+
+  function markCorrectAnswer(q, ans) {
+    var card = document.getElementById("questionCard");
+    card.querySelectorAll(".option").forEach(function (o) { o.classList.add("locked"); });
+
+    if (q.type === "mcq") {
+      card.querySelectorAll(".option").forEach(function (o) {
+        var i = parseInt(o.dataset.i, 10);
+        if (i === q.answer) o.classList.add("correct");
+        else if (ans === i) o.classList.add("wrong");
+      });
+    }
+    if (q.type === "multi") {
+      card.querySelectorAll(".option").forEach(function (o) {
+        var i = parseInt(o.dataset.i, 10);
+        if (q.answer.indexOf(i) !== -1) o.classList.add("correct");
+        else if (ans.indexOf(i) !== -1) o.classList.add("wrong");
+      });
+    }
+    if (q.type === "tf") {
+      card.querySelectorAll(".tf-statement").forEach(function (st, i) {
+        st.querySelectorAll("button").forEach(function (b) {
+          b.classList.add("locked");
+          b.classList.remove("on-true", "on-false");
+        });
+        var trueBtn = st.querySelector('button[data-val="true"]');
+        var falseBtn = st.querySelector('button[data-val="false"]');
+        var correctBtn = q.statements[i].answer ? trueBtn : falseBtn;
+        correctBtn.classList.add("tf-correct");
+        if (ans[i] !== q.statements[i].answer) {
+          (ans[i] === true ? trueBtn : falseBtn).classList.add("tf-wrong");
+        }
+      });
+    }
+    if (q.type === "drag") {
+      card.querySelectorAll(".drag-target").forEach(function (target) {
+        var i = parseInt(target.dataset.target, 10);
+        target.classList.add(ans[i] === i ? "correct" : "wrong");
+      });
+    }
+  }
+
+  document.getElementById("btnNext").addEventListener("click", function () {
+    if (quiz.index < quiz.questions.length - 1) {
+      quiz.index++;
+      renderQuestion();
+    } else {
+      showResult();
+    }
+  });
+
+  var btnPrev = document.getElementById("btnPrev");
+  if (btnPrev) {
+    btnPrev.addEventListener("click", function () {
+      if (quiz.index > 0) {
+        quiz.index--;
+        renderQuestion();
+      }
+    });
+  }
+
+  function showResult() {
+    document.getElementById("quiz-run").classList.add("hidden");
+    document.getElementById("quiz-result").classList.remove("hidden");
+    var total = quiz.questions.length;
+    var score = quiz.results.filter(Boolean).length;
+    document.getElementById("scoreBig").textContent = score + " / " + total;
+    var pct = total ? score / total : 0;
+    var msg = pct === 1 ? "🏆 Xuất sắc! Bạn nắm rất chắc kiến thức."
+      : pct >= 0.8 ? "👍 Tốt lắm, ôn thêm phần sai là ổn."
+      : pct >= 0.5 ? "📖 Khá. Hãy xem lại các câu sai dưới đây."
+      : "💪 Cần ôn kỹ hơn. Xem lại các câu sai nhé.";
+    document.getElementById("scoreMsg").textContent = msg;
+
+    var wl = document.getElementById("wrongList");
+    wl.innerHTML = "";
+    quiz.questions.forEach(function (q, i) {
+      if (quiz.results[i] === true) return;
+      var div = document.createElement("div");
+      div.className = "wrong-item";
+      var ans = correctAnswerText(q);
+      var status = quiz.results[i] === false ? "Sai" : "Chưa làm";
+      div.innerHTML = '<div class="wi-q">' + escapeHtml(q.question) + "</div>" +
+        '<div class="wi-a">' + status + " · Đáp án: " + escapeHtml(ans) + "</div>";
+      wl.appendChild(div);
+    });
+
+    var wrongBtn = document.getElementById("btnRetryWrong");
+    if (wrongBtn) {
+      if (score === total) {
+        wrongBtn.classList.add("hidden");
+      } else {
+        wrongBtn.classList.remove("hidden");
+        wrongBtn.textContent = "Làm lại " + (total - score) + " câu sai";
+      }
+    }
+  }
+
+  function correctAnswerText(q) {
+    if (q.type === "mcq") return String.fromCharCode(65 + q.answer) + ". " + q.options[q.answer];
+    if (q.type === "multi") return q.answer.map(function (i) { return String.fromCharCode(65 + i); }).join(", ") +
+      " — " + q.answer.map(function (i) { return q.options[i]; }).join("; ");
+    if (q.type === "tf") return q.statements.map(function (s, i) { return (i + 1) + ") " + (s.answer ? "Đúng" : "Sai"); }).join("; ");
+    if (q.type === "drag") return q.pairs.map(function (p) { return p.definition.split(" ").slice(0, 4).join(" ") + "… → " + p.term; }).join("; ");
+    return "";
+  }
+
+  function startWith(questions) {
+    if (document.getElementById("shuffleToggle").checked) questions = shuffle(questions);
+    quiz.questions = questions;
+    quiz.index = 0;
+    quiz.results = [];
+    quiz.answered = false;
+    quiz.flags = {};
+    document.getElementById("quiz-result").classList.add("hidden");
+    document.getElementById("quiz-run").classList.remove("hidden");
+    renderQuestion();
+  }
+
+  document.getElementById("btnRetry").addEventListener("click", function () {
+    startWith(quiz.questions);
+  });
+
+  var btnRetryWrong = document.getElementById("btnRetryWrong");
+  if (btnRetryWrong) {
+    btnRetryWrong.addEventListener("click", function () {
+      var wrong = quiz.questions.filter(function (q, i) { return !quiz.results[i]; });
+      if (!wrong.length) { toast("Không có câu sai nào để làm lại."); return; }
+      startWith(wrong);
+    });
+  }
+
+  function toggleFlag() {
+    quiz.flags[quiz.index] = !quiz.flags[quiz.index];
+    var flagBtn = document.getElementById("btnFlag");
+    if (!flagBtn) return;
+    var flagged = !!quiz.flags[quiz.index];
+    flagBtn.textContent = flagged ? "★ Đã đánh dấu" : "⭐ Đánh dấu khó";
+    flagBtn.classList.toggle("flagged", flagged);
+  }
+
+  function openNav() {
+    var grid = document.getElementById("navGrid");
+    var total = quiz.questions.length;
+    var done = 0, correct = 0, flagged = 0;
+    for (var i = 0; i < total; i++) {
+      if (quiz.results[i] !== undefined) done++;
+      if (quiz.results[i] === true) correct++;
+      if (quiz.flags[i]) flagged++;
+    }
+    document.getElementById("navSummary").textContent =
+      "Đã làm " + done + "/" + total + " · Đúng " + correct + " · Đánh dấu " + flagged;
+
+    grid.innerHTML = "";
+    quiz.questions.forEach(function (q, i) {
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "nav-cell";
+      cell.textContent = i + 1;
+      if (i === quiz.index) cell.classList.add("current");
+      if (quiz.results[i] === true) cell.classList.add("correct");
+      else if (quiz.results[i] === false) cell.classList.add("wrong");
+      if (quiz.flags[i]) cell.classList.add("flagged");
+      cell.addEventListener("click", function () {
+        quiz.index = i;
+        document.getElementById("navModal").classList.add("hidden");
+        renderQuestion();
+      });
+      grid.appendChild(cell);
+    });
+    document.getElementById("navModal").classList.remove("hidden");
+  }
+
+  var btnNav = document.getElementById("btnNav");
+  if (btnNav) btnNav.addEventListener("click", openNav);
+  var btnNavClose = document.getElementById("btnNavClose");
+  if (btnNavClose) btnNavClose.addEventListener("click", function () {
+    document.getElementById("navModal").classList.add("hidden");
+  });
+  var btnFlag = document.getElementById("btnFlag");
+  if (btnFlag) btnFlag.addEventListener("click", toggleFlag);
+
+  /* ---------------- Quản lý môn học ---------------- */
+  function renderManageSubjects() {
+    var sel = document.getElementById("manageSubject");
+    if (!sel) return;
+    sel.innerHTML = "";
+    subjects.forEach(function (s) {
+      var opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (s.id === currentSubjectId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    var count = document.getElementById("manageCount");
+    if (count) count.textContent = getBank().length + " câu hỏi";
+  }
+
+  var manageSubject = document.getElementById("manageSubject");
+  if (manageSubject) {
+    manageSubject.addEventListener("change", function () {
+      currentSubjectId = manageSubject.value;
+      renderManage();
+      renderHome();
+    });
+  }
+
+  document.getElementById("btnAddSubject").addEventListener("click", function () { openSubjectModal(null); });
+  document.getElementById("btnRenameSubject").addEventListener("click", function () {
+    openSubjectModal(currentSubjectId);
+  });
+  document.getElementById("btnDelSubject").addEventListener("click", function () {
+    var s = currentSubject();
+    if (!s) return;
+    if (subjects.length <= 1) { toast("Phải còn ít nhất một môn học."); return; }
+    askConfirm('Xóa môn học "' + s.name + '" và ' + (s.questions ? s.questions.length : 0) + " câu hỏi của nó?", "Xóa", function () {
+      subjects = subjects.filter(function (x) { return x.id !== s.id; });
+      currentSubjectId = subjects[0].id;
+      saveSubjects();
+      renderManage();
+      renderHome();
+    });
+  });
+
+  function openSubjectModal(id) {
+    subjectEditId = id || null;
+    var s = id ? findSubject(id) : null;
+    document.getElementById("subjectModalTitle").textContent = id ? "Đổi tên môn học" : "Thêm môn học";
+    document.getElementById("subjectName").value = s ? s.name : "";
+    document.getElementById("subjectModal").classList.remove("hidden");
+  }
+
+  document.getElementById("subjectCancel").addEventListener("click", function () {
+    document.getElementById("subjectModal").classList.add("hidden");
+  });
+  document.getElementById("subjectSave").addEventListener("click", function () {
+    var name = document.getElementById("subjectName").value.trim();
+    if (!name) { toast("Vui lòng nhập tên môn học."); return; }
+    if (subjectEditId) {
+      var s = findSubject(subjectEditId);
+      if (s) s.name = name;
+    } else {
+      subjects.push({ id: subjectUid(), name: name, icon: "📘", questions: [] });
+      currentSubjectId = subjects[subjects.length - 1].id;
+    }
+    saveSubjects();
+    document.getElementById("subjectModal").classList.add("hidden");
+    renderManage();
+    renderHome();
+  });
+
+  /* ---------------- Quản lý câu hỏi ---------------- */
+  var managePage = 0;          // trang hiện tại của danh sách câu hỏi
+  var lastManageSubjectId = null;
+  var PAGE_SIZE = 20;
+
+  function renderManage() {
+    renderManageSubjects();
+    if (currentSubjectId !== lastManageSubjectId) {
+      managePage = 0;
+      lastManageSubjectId = currentSubjectId;
+    }
+    var list = document.getElementById("manageList");
+    list.innerHTML = "";
+    var bank = getBank();
+    if (!bank.length) {
+      list.innerHTML = '<p class="hint">Môn học này chưa có câu hỏi. Bấm “＋ Thêm câu hỏi” hoặc “📄 Import Word/PDF/Ảnh”.</p>';
+      renderPager(1);
+      return;
+    }
+    var totalPages = Math.ceil(bank.length / PAGE_SIZE);
+    if (managePage >= totalPages) managePage = 0;
+    var start = managePage * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, bank.length);
+    var pageItems = [];
+    for (var i = start; i < end; i++) pageItems.push({ q: bank[i], idx: i });
+    pageItems.forEach(function (item) {
+      var q = item.q;
+      var idx = item.idx;
+      var div = document.createElement("div");
+      div.className = "mg-item";
+      var meta = typeLabel(q.type) + " · " + (q.topic || "Chung");
+      div.innerHTML = '<div class="mg-top"><div class="mg-main">' +
+        '<div class="mg-q"></div><div class="mg-meta"></div></div>' +
+        '<div class="mg-btns"><button class="detail">Chi tiết</button><button class="edit">Sửa</button><button class="del">Xóa</button></div></div>';
+      div.querySelector(".mg-q").textContent = "Câu " + (idx + 1);
+      div.querySelector(".mg-meta").textContent = meta;
+      div.querySelector(".detail").addEventListener("click", function () { openDetail(idx); });
+      div.querySelector(".edit").addEventListener("click", function () { openEdit(idx); });
+      div.querySelector(".del").addEventListener("click", function () {
+        askConfirm("Xóa câu hỏi này?", "Xóa", function () {
+          bank.splice(idx, 1); saveSubjects(); renderManage(); renderHome();
+        });
+      });
+      list.appendChild(div);
+    });
+    renderPager(totalPages);
+  }
+
+  function renderPager(totalPages) {
+    var pager = document.getElementById("managePager");
+    if (!pager) return;
+    pager.innerHTML = "";
+    if (totalPages <= 1) { pager.classList.add("hidden"); return; }
+    pager.classList.remove("hidden");
+    var prev = document.createElement("button");
+    prev.type = "button";
+    prev.className = "btn secondary sm";
+    prev.textContent = "← Trước";
+    prev.disabled = managePage === 0;
+    prev.addEventListener("click", function () { managePage--; renderManage(); });
+    var info = document.createElement("span");
+    info.className = "pager-info";
+    info.textContent = "Trang " + (managePage + 1) + " / " + totalPages;
+    var next = document.createElement("button");
+    next.type = "button";
+    next.className = "btn secondary sm";
+    next.textContent = "Sau →";
+    next.disabled = managePage >= totalPages - 1;
+    next.addEventListener("click", function () { managePage++; renderManage(); });
+    pager.appendChild(prev);
+    pager.appendChild(info);
+    pager.appendChild(next);
+  }
+
+  document.getElementById("btnAdd").addEventListener("click", function () { openEdit(null); });
+  document.getElementById("btnReset").addEventListener("click", function () {
+    askConfirm("Đặt lại toàn bộ dữ liệu về bản gốc? Mọi thay đổi của bạn sẽ mất.", "Đặt lại", function () {
+      resetSubjects(); renderManage(); renderHome();
+    });
+  });
+  /* ---- Chi tiết câu hỏi ---- */
+  var detailIdx = null;
+  function openDetail(idx) {
+    detailIdx = idx;
+    var q = getBank()[idx];
+    if (!q) return;
+    document.getElementById("detailTitle").textContent = "Chi tiết câu hỏi";
+    var html = '<p class="detail-meta">' +
+      '<span class="dt-tag">' + typeLabel(q.type) + '</span>' +
+      '<span class="dt-tag">' + escapeHtml(q.topic || "Chung") + '</span></p>' +
+      '<div class="detail-q">' + escapeHtml(q.question) + '</div>';
+    if (q.type === "mcq" || q.type === "multi") {
+      var answers = q.type === "multi" ? q.answer : [q.answer];
+      q.options.forEach(function (opt, i) {
+        var isCorrect = answers.indexOf(i) !== -1;
+        html += '<div class="detail-opt' + (isCorrect ? " correct" : "") + '">' +
+          '<span class="dt-letter">' + String.fromCharCode(65 + i) + '</span>' +
+          '<span>' + escapeHtml(opt) + '</span>' +
+          (isCorrect ? '<span class="dt-ok">✓ Đúng</span>' : '') + '</div>';
+      });
+    } else if (q.type === "tf") {
+      q.statements.forEach(function (st, i) {
+        html += '<div class="detail-opt' + (st.answer ? " correct" : "") + '">' +
+          '<span class="dt-letter">' + (i + 1) + '</span>' +
+          '<span>' + escapeHtml(st.text) + '</span>' +
+          '<span class="dt-ok">' + (st.answer ? "Đúng" : "Sai") + '</span></div>';
+      });
+    } else if (q.type === "drag") {
+      q.pairs.forEach(function (p, i) {
+        html += '<div class="detail-opt correct"><span class="dt-letter">' + (i + 1) + '</span>' +
+          '<span><strong>' + escapeHtml(p.term) + '</strong> — ' + escapeHtml(p.definition) + '</span></div>';
+      });
+    }
+    if (q.explanation) {
+      html += '<div class="detail-explain"><strong>Giải thích:</strong> ' + escapeHtml(q.explanation) + '</div>';
+    }
+    document.getElementById("detailBody").innerHTML = html;
+    document.getElementById("detailModal").classList.remove("hidden");
+  }
+
+  document.getElementById("btnDetailClose").addEventListener("click", function () {
+    document.getElementById("detailModal").classList.add("hidden");
+  });
+  document.getElementById("btnDetailEdit").addEventListener("click", function () {
+    document.getElementById("detailModal").classList.add("hidden");
+    if (detailIdx != null) openEdit(detailIdx);
+  });
+
+  /* ---- Form thêm/sửa ---- */
+  var editFormState = { options: [], statements: [], pairs: [], correct: null, correctMulti: [], pick: 2 };
+
+  function populateSubjectSelect(sel, selectedId) {
+    if (!sel) return;
+    sel.innerHTML = "";
+    subjects.forEach(function (s) {
+      var opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (s.id === selectedId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function editingQuestion() {
+    if (editingId == null) return null;
+    var s = findSubject(editingSubjectId);
+    return s && s.questions[editingId] ? s.questions[editingId] : null;
+  }
+
+  function openEdit(idx) {
+    editingId = idx;
+    editingSubjectId = currentSubjectId;
+    var q = editingQuestion();
+    document.getElementById("editTitle").textContent = idx == null ? "Thêm câu hỏi" : "Sửa câu hỏi";
+    document.getElementById("fTopic").value = q ? (q.topic || "") : "";
+    document.getElementById("fQuestion").value = q ? q.question : "";
+    document.getElementById("fExplain").value = q ? (q.explanation || "") : "";
+    document.getElementById("fType").value = q ? q.type : "mcq";
+    populateSubjectSelect(document.getElementById("fSubject"), currentSubjectId);
+
+    editFormState.options = q && q.options ? q.options.slice() : ["", "", "", ""];
+    editFormState.correct = q && q.type === "mcq" ? q.answer : 0;
+    editFormState.correctMulti = q && q.type === "multi" ? q.answer.slice() : [0];
+    editFormState.pick = q && q.pick ? q.pick : 2;
+    editFormState.statements = q && q.type === "tf" ? q.statements.map(function (s) { return { text: s.text, answer: s.answer }; }) : [{ text: "", answer: true }, { text: "", answer: true }];
+    editFormState.pairs = q && q.type === "drag" ? q.pairs.map(function (p) { return { term: p.term, definition: p.definition }; }) : [{ term: "", definition: "" }, { term: "", definition: "" }];
+
+    buildFormBody();
+    document.getElementById("editModal").classList.remove("hidden");
+  }
+
+  document.getElementById("fType").addEventListener("change", buildFormBody);
+  document.getElementById("btnCancelEdit").addEventListener("click", function () {
+    document.getElementById("editModal").classList.add("hidden");
+  });
+
+  function buildFormBody() {
+    var type = document.getElementById("fType").value;
+    var body = document.getElementById("fBody");
+    var html = "";
+
+    if (type === "mcq" || type === "multi") {
+      var pick = type === "multi";
+      editFormState.options.forEach(function (opt, i) {
+        var mark = pick
+          ? '<label class="correct-mark" style="margin-left:8px"><input type="checkbox" class="cmark" data-i="' + i + '"' + (editFormState.correctMulti.indexOf(i) !== -1 ? " checked" : "") + '> đúng</label>'
+          : '<label class="correct-mark" style="margin-left:8px"><input type="radio" name="mcorrect" class="cmark" data-i="' + i + '"' + (editFormState.correct === i ? " checked" : "") + '> đúng</label>';
+        html += '<div class="fbody-row"><input type="text" class="fopt" data-i="' + i + '" value="' + escapeHtml(opt) + '" placeholder="Đáp án ' + String.fromCharCode(65 + i) + '">' + mark + '<span class="rm-row" data-i="' + i + '">✕</span></div>';
+      });
+      html += '<button type="button" class="btn secondary" id="btnAddOpt">＋ Thêm đáp án</button>';
+      if (pick) {
+        html += '<label style="margin-top:12px">Số đáp án đúng cần chọn<input type="number" id="fPick" min="1" value="' + editFormState.pick + '"></label>';
+      }
+    } else if (type === "tf") {
+      editFormState.statements.forEach(function (st, i) {
+        var checkedTrue = st.answer ? " checked" : "";
+        var checkedFalse = st.answer ? "" : " checked";
+        html += '<div class="fbody-row"><textarea class="fstmt" data-i="' + i + '" rows="1" placeholder="Phát biểu ' + (i + 1) + '">' + escapeHtml(st.text) + '</textarea>' +
+          '<label class="correct-mark" style="margin-left:8px"><input type="radio" name="stmt' + i + '" class="stmtTrue" data-i="' + i + '"' + checkedTrue + '> Đúng</label>' +
+          '<label class="correct-mark" style="margin-left:4px"><input type="radio" name="stmt' + i + '" class="stmtFalse" data-i="' + i + '"' + checkedFalse + '> Sai</label>' +
+          '<span class="rm-row" data-i="' + i + '">✕</span></div>';
+      });
+      html += '<button type="button" class="btn secondary" id="btnAddStmt">＋ Thêm phát biểu</button>';
+    } else if (type === "drag") {
+      editFormState.pairs.forEach(function (p, i) {
+        html += '<div class="fbody-row"><input type="text" class="fterm" data-i="' + i + '" value="' + escapeHtml(p.term) + '" placeholder="Khái niệm ' + (i + 1) + '">' +
+          '<textarea class="fdef" data-i="' + i + '" rows="1" placeholder="Phát biểu tương ứng">' + escapeHtml(p.definition) + '</textarea>' +
+          '<span class="rm-row" data-i="' + i + '">✕</span></div>';
+      });
+      html += '<button type="button" class="btn secondary" id="btnAddPair">＋ Thêm cặp</button>';
+    }
+
+    body.innerHTML = html;
+    bindFormBody(type);
+  }
+
+  function bindFormBody(type) {
+    var body = document.getElementById("fBody");
+    body.querySelectorAll(".rm-row").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var i = parseInt(el.dataset.i, 10);
+        if (type === "mcq" || type === "multi") {
+          editFormState.options.splice(i, 1);
+          editFormState.correctMulti = editFormState.correctMulti.filter(function (x) { return x !== i; }).map(function (x) { return x > i ? x - 1 : x; });
+          if (editFormState.correct === i) editFormState.correct = 0;
+          else if (editFormState.correct > i) editFormState.correct--;
+        } else if (type === "tf") { editFormState.statements.splice(i, 1); }
+        else if (type === "drag") { editFormState.pairs.splice(i, 1); }
+        buildFormBody();
+      });
+    });
+
+    var addOpt = body.querySelector("#btnAddOpt");
+    if (addOpt) addOpt.addEventListener("click", function () { editFormState.options.push(""); buildFormBody(); });
+    var addStmt = body.querySelector("#btnAddStmt");
+    if (addStmt) addStmt.addEventListener("click", function () { editFormState.statements.push({ text: "", answer: true }); buildFormBody(); });
+    var addPair = body.querySelector("#btnAddPair");
+    if (addPair) addPair.addEventListener("click", function () { editFormState.pairs.push({ term: "", definition: "" }); buildFormBody(); });
+
+    body.querySelectorAll(".fopt").forEach(function (inp) {
+      inp.addEventListener("input", function () { editFormState.options[parseInt(inp.dataset.i, 10)] = inp.value; });
+    });
+    body.querySelectorAll(".fstmt").forEach(function (inp) {
+      inp.addEventListener("input", function () { editFormState.statements[parseInt(inp.dataset.i, 10)].text = inp.value; });
+    });
+    body.querySelectorAll(".fterm").forEach(function (inp) {
+      inp.addEventListener("input", function () { editFormState.pairs[parseInt(inp.dataset.i, 10)].term = inp.value; });
+    });
+    body.querySelectorAll(".fdef").forEach(function (inp) {
+      inp.addEventListener("input", function () { editFormState.pairs[parseInt(inp.dataset.i, 10)].definition = inp.value; });
+    });
+    body.querySelectorAll(".cmark").forEach(function (c) {
+      c.addEventListener("change", function () {
+        var i = parseInt(c.dataset.i, 10);
+        if (c.type === "radio") editFormState.correct = i;
+        else {
+          if (c.checked) { if (editFormState.correctMulti.indexOf(i) === -1) editFormState.correctMulti.push(i); }
+          else editFormState.correctMulti = editFormState.correctMulti.filter(function (x) { return x !== i; });
+        }
+      });
+    });
+    body.querySelectorAll(".stmtTrue").forEach(function (c) {
+      c.addEventListener("change", function () { if (c.checked) editFormState.statements[parseInt(c.dataset.i, 10)].answer = true; });
+    });
+    body.querySelectorAll(".stmtFalse").forEach(function (c) {
+      c.addEventListener("change", function () { if (c.checked) editFormState.statements[parseInt(c.dataset.i, 10)].answer = false; });
+    });
+  }
+
+  document.getElementById("qForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var type = document.getElementById("fType").value;
+    var fSubjectEl = document.getElementById("fSubject");
+    var targetSubjectId = fSubjectEl ? fSubjectEl.value : editingSubjectId;
+    var q = {
+      topic: document.getElementById("fTopic").value.trim() || "Chung",
+      type: type,
+      question: document.getElementById("fQuestion").value.trim(),
+      explanation: document.getElementById("fExplain").value.trim()
+    };
+
+    if (!q.question) { toast("Vui lòng nhập nội dung câu hỏi."); return; }
+
+    if (type === "mcq") {
+      q.options = editFormState.options.map(function (o) { return o.trim(); });
+      q.answer = editFormState.correct;
+      if (q.options.some(function (o) { return !o; })) { toast("Vui lòng điền đủ các đáp án."); return; }
+    } else if (type === "multi") {
+      q.options = editFormState.options.map(function (o) { return o.trim(); });
+      q.answer = editFormState.correctMulti.slice().sort(function (a, b) { return a - b; });
+      q.pick = parseInt(document.getElementById("fPick").value, 10) || 2;
+      if (q.options.some(function (o) { return !o; })) { toast("Vui lòng điền đủ các đáp án."); return; }
+      if (!q.answer.length) { toast("Hãy đánh dấu ít nhất một đáp án đúng."); return; }
+    } else if (type === "tf") {
+      q.statements = editFormState.statements.map(function (s) { return { text: s.text.trim(), answer: s.answer }; });
+      if (q.statements.some(function (s) { return !s.text; })) { toast("Vui lòng điền đủ các phát biểu."); return; }
+    } else if (type === "drag") {
+      q.pairs = editFormState.pairs.map(function (p) { return { term: p.term.trim(), definition: p.definition.trim() }; });
+      if (q.pairs.some(function (p) { return !p.term || !p.definition; })) { toast("Vui lòng điền đủ khái niệm và phát biểu."); return; }
+    }
+
+    var targetSubject = findSubject(targetSubjectId) || currentSubject();
+    if (!targetSubject) { toast("Chưa có môn học. Hãy thêm môn học trước."); return; }
+    var tbank = targetSubject.questions || (targetSubject.questions = []);
+
+    if (editingId == null) {
+      q.id = uid();
+      tbank.push(q);
+    } else {
+      var oldSubject = findSubject(editingSubjectId);
+      if (oldSubject && oldSubject.id !== targetSubject.id) {
+        // Đổi môn học: xóa khỏi môn cũ, thêm vào môn mới
+        q.id = oldSubject.questions[editingId] && oldSubject.questions[editingId].id;
+        oldSubject.questions.splice(editingId, 1);
+        tbank.push(q);
+      } else {
+        q.id = tbank[editingId] && tbank[editingId].id;
+        tbank[editingId] = q;
+      }
+    }
+
+    currentSubjectId = targetSubject.id;
+    saveSubjects();
+    document.getElementById("editModal").classList.add("hidden");
+    renderManage();
+    renderHome();
+  });
+
+  /* ---------------- Utility ---------------- */
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  /* ---------------- API cho import.js ---------------- */
+  window.App = {
+    currentSubject: currentSubject,
+    addQuestions: function (qs) {
+      var s = currentSubject();
+      if (s) s.questions = (s.questions || []).concat(qs);
+      saveSubjects();
+    },
+    refresh: function () { renderManage(); renderHome(); },
+    toast: toast,
+    escapeHtml: escapeHtml,
+    uid: uid
+  };
+
+  /* ---------------- Đăng nhập / đăng ký ---------------- */
+  function showApp() {
+    var auth = document.getElementById("authScreen");
+    if (auth) auth.classList.add("hidden");
+    var layout = document.querySelector(".layout");
+    if (layout) layout.classList.remove("hidden");
+    if (subjects.length) currentSubjectId = subjects[0].id;
+    renderHome();
+  }
+
+  function showAuthScreen() {
+    var auth = document.getElementById("authScreen");
+    if (auth) auth.classList.remove("hidden");
+    var layout = document.querySelector(".layout");
+    if (layout) layout.classList.add("hidden");
+  }
+
+  var authMode = "login"; // "login" | "signup"
+
+  function setAuthMsg(msg) {
+    var el = document.getElementById("authMsg");
+    if (el) el.textContent = msg;
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    var tabLogin = document.getElementById("tabLogin");
+    var tabSignup = document.getElementById("tabSignup");
+    if (tabLogin) tabLogin.classList.toggle("active", mode === "login");
+    if (tabSignup) tabSignup.classList.toggle("active", mode === "signup");
+    var submit = document.getElementById("btnAuthSubmit");
+    if (submit) submit.textContent = mode === "login" ? "Đăng nhập" : "Tạo tài khoản";
+    var pwd = document.getElementById("authPassword");
+    if (pwd) pwd.autocomplete = mode === "login" ? "current-password" : "new-password";
+    var confirm = document.getElementById("authConfirmLabel");
+    if (confirm) confirm.classList.toggle("hidden", mode !== "signup");
+    setAuthMsg("");
+  }
+
+  function doAuth() {
+    var email = document.getElementById("authEmail").value.trim();
+    var password = document.getElementById("authPassword").value;
+    if (!email || !password) { setAuthMsg("Vui lòng nhập email và mật khẩu."); return; }
+    if (password.length < 6) { setAuthMsg("Mật khẩu tối thiểu 6 ký tự."); return; }
+    if (authMode === "signup") {
+      var confirm = document.getElementById("authConfirm").value;
+      if (password !== confirm) { setAuthMsg("Mật khẩu nhập lại không khớp."); return; }
+    }
+    if (!window.supabase || !window.supabase.createClient) { setAuthMsg("Hệ thống chưa sẵn sàng, thử lại sau."); return; }
+    var remember = document.getElementById("authRemember").checked;
+    // Tạo lại client theo lựa chọn "ghi nhớ" (bỏ chọn = không lưu phiên vào trình duyệt)
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: remember, autoRefreshToken: remember, detectSessionInUrl: false }
+    });
+    setAuthMsg("Đang xử lý…");
+    var p = authMode === "login"
+      ? db.auth.signInWithPassword({ email: email, password: password })
+      : db.auth.signUp({ email: email, password: password });
+    p.then(function (res) {
+      if (res.error) { setAuthMsg(res.error.message); return; }
+      if (authMode === "signup" && !res.data.session) {
+        setAuthMsg("Đã gửi email xác nhận. Hãy xác nhận rồi đăng nhập lại.");
+        return;
+      }
+      userId = res.data.session.user.id;
+      loadSubjects().then(showApp);
+    }).catch(function () {
+      setAuthMsg("Có lỗi xảy ra, vui lòng thử lại.");
+    });
+  }
+
+  function doLogout() {
+    if (db) db.auth.signOut();
+    userId = null;
+    subjects = [];
+    currentSubjectId = null;
+    showAuthScreen();
+  }
+
+  var authForm = document.getElementById("authForm");
+  if (authForm) authForm.addEventListener("submit", function (e) { e.preventDefault(); doAuth(); });
+  var tabLogin = document.getElementById("tabLogin");
+  if (tabLogin) tabLogin.addEventListener("click", function () { setAuthMode("login"); });
+  var tabSignup = document.getElementById("tabSignup");
+  if (tabSignup) tabSignup.addEventListener("click", function () { setAuthMode("signup"); });
+  var btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) btnLogout.addEventListener("click", doLogout);
+
+  /* ---------------- Khởi động ---------------- */
+  function bootstrap() {
+    if (useSupabase()) {
+      loadSupabaseClient().then(function (sb) {
+        db = sb.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        return db.auth.getSession();
+      }).then(function (res) {
+        if (res.data && res.data.session) {
+          userId = res.data.session.user.id;
+          return loadSubjects().then(showApp);
+        }
+        showAuthScreen();
+      }).catch(function () {
+        // Lỗi mạng / sự cố -> dùng local (không cần đăng nhập)
+        subjects = loadLocalSubjects();
+        showApp();
+      });
+    } else {
+      subjects = loadLocalSubjects();
+      showApp();
+    }
+  }
+  bootstrap();
+})();
+
+</script>
+  <script>
+/* ============================================================
+   Import câu hỏi từ file Word (.docx) / PDF / TXT
+   - .docx: mammoth.js (giữ thẻ <strong> để nhận diện đáp án in đậm)
+   - .pdf : pdf.js (trích text; file ảnh quét chưa hỗ trợ OCR)
+   - .txt : đọc trực tiếp
+   Sau khi tách, hiện màn hình duyệt để sửa + đánh dấu đáp án rồi lưu.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  var drafts = []; // các câu đã tách, đang chờ duyệt
+
+  function init() {
+    if (!window.App) return;
+    var btn = document.getElementById("btnImportDoc");
+    var fileInput = document.getElementById("importDocFile");
+    if (btn && fileInput) {
+      btn.addEventListener("click", function () { fileInput.click(); });
+      fileInput.addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        handleImportFile(file);
+        e.target.value = "";
+      });
+    }
+    var cancel = document.getElementById("btnImportCancel");
+    if (cancel) cancel.addEventListener("click", closeImportModal);
+    var confirm = document.getElementById("btnImportConfirm");
+    if (confirm) confirm.addEventListener("click", confirmImport);
+  }
+
+  /* ---------------- Đọc file ---------------- */
+  function handleImportFile(file) {
+    var name = (file.name || "").toLowerCase();
+    if (name.endsWith(".txt")) {
+      var tr = new FileReader();
+      tr.onload = function () { finishParse(tr.result, null); };
+      tr.onerror = function () { App.toast("Không đọc được file."); };
+      tr.readAsText(file);
+      return;
+    }
+    if (name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png")) {
+      ocrFile(file);
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var buf = reader.result;
+      if (name.endsWith(".docx")) extractDocx(buf);
+      else if (name.endsWith(".pdf")) extractPdf(buf);
+      else App.toast("Định dạng không hỗ trợ. Dùng .docx, .pdf hoặc .txt.");
+    };
+    reader.onerror = function () { App.toast("Không đọc được file."); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function extractDocx(buf) {
+    if (!window.mammoth) { App.toast("Chưa tải thư viện đọc Word. Kiểm tra kết nối mạng."); return; }
+    mammoth.convertToHtml({ arrayBuffer: buf }).then(function (result) {
+      var html = result.value;
+      finishParse(htmlToText(html), html);
+    }, function () { App.toast("Không đọc được file Word."); });
+  }
+
+  function extractPdf(buf) {
+    if (!window.pdfjsLib) { App.toast("Chưa tải thư viện đọc PDF. Kiểm tra kết nối mạng."); return; }
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    pdfjsLib.getDocument({ data: buf }).promise.then(function (pdf) {
+      var pagePromises = [];
+      for (var i = 1; i <= pdf.numPages; i++) pagePromises.push(pdf.getPage(i));
+      return Promise.all(pagePromises);
+    }).then(function (pages) {
+      return Promise.all(pages.map(function (page) {
+        return page.getTextContent().then(function (tc) {
+          return tc.items.map(function (it) { return it.str; }).join(" ");
+        });
+      })).then(function (texts) {
+        var text = texts.join("\n");
+        // PDF ảnh quét (không có lớp chữ) -> nhận diện OCR từng trang
+        if (text.replace(/\s/g, "").length < 20) return ocrPdf(pages);
+        return text;
+      });
+    }).then(function (text) {
+      finishParse(text, null);
+    }).catch(function () {
+      App.toast("Không đọc được file PDF.");
+    });
+  }
+
+  function htmlToText(html) {
+    var div = document.createElement("div");
+    div.innerHTML = html;
+    div.querySelectorAll("p, li, br, div, h1, h2, h3, h4, h5, tr").forEach(function (el) {
+      el.appendChild(document.createTextNode("\n"));
+    });
+    return div.textContent;
+  }
+
+  /* ---------------- OCR (ảnh quét) ---------------- */
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error("Không tải được thư viện OCR")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function ocrFile(file) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      showOcrLoading();
+      setOcrStatus("Đang tải dữ liệu nhận diện tiếng Việt…");
+      loadTesseract().then(function () {
+        return recognizeImage(img, setOcrProgress);
+      }).then(function (text) {
+        URL.revokeObjectURL(url);
+        hideOcrLoading();
+        finishParse(text, null);
+      }).catch(function () {
+        URL.revokeObjectURL(url);
+        hideOcrLoading();
+        App.toast("Nhận diện ảnh không thành công.");
+      });
+    };
+    img.onerror = function () { App.toast("Không đọc được ảnh."); };
+    img.src = url;
+  }
+
+  function ocrPdf(pages) {
+    showOcrLoading();
+    setOcrStatus("Đang tải dữ liệu nhận diện tiếng Việt…");
+    return loadTesseract().then(function () {
+      var total = pages.length;
+      var results = [];
+      var chain = Promise.resolve();
+      pages.forEach(function (page, pi) {
+        chain = chain.then(function () {
+          return renderPage(page, 2).then(function (canvas) {
+            setOcrStatus("Đang nhận diện trang " + (pi + 1) + "/" + total + "…");
+            return recognizeImage(canvas, function (p) {
+              setOcrProgress((pi + (p || 0)) / total);
+            });
+          }).then(function (text) {
+            results.push(text);
+          });
+        });
+      });
+      return chain.then(function () { return results.join("\n"); });
+    });
+  }
+
+  function renderPage(page, scale) {
+    var viewport = page.getViewport({ scale: scale });
+    var canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    var ctx = canvas.getContext("2d");
+    return page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () { return canvas; });
+  }
+
+  function recognizeImage(img, onProgress) {
+    return Tesseract.recognize(img, "vie", {
+      logger: function (m) {
+        if (m.status === "recognizing text") { if (onProgress) onProgress(m.progress); }
+        else if (m.status) setOcrStatus(ocrStatusText(m.status));
+      }
+    }).then(function (result) { return result.data.text || ""; });
+  }
+
+  function ocrStatusText(status) {
+    if (status === "loading tesseract core") return "Đang tải bộ nhận diện…";
+    if (status === "initializing tesseract") return "Đang khởi tạo…";
+    if (status === "loading language traineddata") return "Đang tải dữ liệu tiếng Việt…";
+    if (status === "initializing api") return "Đang khởi tạo…";
+    return status;
+  }
+
+  function showOcrLoading() {
+    var el = document.getElementById("ocrLoading");
+    if (el) el.classList.remove("hidden");
+    setOcrProgress(0);
+  }
+  function hideOcrLoading() {
+    var el = document.getElementById("ocrLoading");
+    if (el) el.classList.add("hidden");
+  }
+  function setOcrStatus(text) {
+    var el = document.getElementById("ocrStatus");
+    if (el) el.textContent = text;
+  }
+  function setOcrProgress(frac) {
+    var fill = document.getElementById("ocrFill");
+    if (fill) fill.style.width = Math.round((frac || 0) * 100) + "%";
+  }
+
+  /* ---------------- Tách câu hỏi ---------------- */
+  function finishParse(text, html) {
+    if (!text || !text.trim()) { App.toast("File rỗng hoặc không có nội dung chữ."); return; }
+    drafts = parseQuestions(text, html);
+    if (!drafts.length) { App.toast("Không tách được câu hỏi nào từ file."); return; }
+    renderImportReview();
+    openImportModal();
+  }
+
+  function parseQuestions(text, html) {
+    var blocks = splitBlocks(text);
+    if (!blocks) return [];
+    var boldLetters = html ? extractBoldLetters(html) : [];
+    var boldIdx = 0;
+    var result = [];
+    blocks.forEach(function (block) {
+      var parsed = parseBlock(block);
+      if (!parsed) return;
+      if (!parsed.correct.length && boldLetters[boldIdx]) {
+        var idx = letterToIndex(boldLetters[boldIdx]);
+        if (idx >= 0 && idx < parsed.options.length) parsed.correct = [idx];
+      }
+      boldIdx++;
+      result.push(parsed);
+    });
+    return result;
+  }
+
+  // Tách thành các khối câu hỏi theo mốc "Câu N" (hoặc "1." ở đầu dòng nếu không có chữ "Câu")
+  function splitBlocks(text) {
+    var marker = /(^|\n)[ \t]*(?:C(?:â|a)u(?:\s+hỏi)?[ \t]*\d+)[.:)]?[ \t]*/gi;
+    var idxs = [];
+    var m;
+    while ((m = marker.exec(text)) !== null) idxs.push({ start: m.index + m[0].length, end: m.index });
+    if (!idxs.length) {
+      var num = /(^|\n)[ \t]*\d+[\.\)][ \t]+/g;
+      while ((m = num.exec(text)) !== null) idxs.push({ start: m.index + m[0].length, end: m.index });
+      if (!idxs.length) return null;
+    }
+    var blocks = [];
+    for (var i = 0; i < idxs.length; i++) {
+      var s = idxs[i].start;
+      var e = i + 1 < idxs.length ? idxs[i + 1].end : text.length;
+      var b = text.slice(s, e).trim();
+      if (b) blocks.push(b);
+    }
+    return blocks;
+  }
+
+  // Nhận diện đáp án in đậm trong HTML (chỉ chữ cái đơn A-E hoặc cả dòng bắt đầu bằng chữ cái)
+  function extractBoldLetters(html) {
+    var letters = [];
+    var re1 = /<(?:strong|b)>\s*([A-Ea-e])\s*[\.\):：]?\s*<\/(?:strong|b)>/gi;
+    var re2 = /<(?:strong|b)>\s*([A-Ea-e])\s*[\.\):：]\s+[^<]*<\/(?:strong|b)>/gi;
+    var m;
+    while ((m = re1.exec(html)) !== null) letters.push(m[1].toUpperCase());
+    while ((m = re2.exec(html)) !== null) letters.push(m[1].toUpperCase());
+    return letters;
+  }
+
+  function parseBlock(block) {
+    var correct = [];
+    var low = block.toLowerCase();
+    // "Đáp án: A" / "đáp án là B" / "ĐA: C"
+    var am = low.match(/(?:đáp\s*án|dap\s*an|đ\.?\s*a)(?:\s*(?:là|la)\s*)?[\s:：.=\-–]*([a-d])\b/);
+    if (am) {
+      correct = [letterToIndex(am[1])];
+      // Xóa cụm "đáp án: X" khỏi khối (không xóa cả dòng) để không lẫn vào nội dung/đáp án
+      block = block.slice(0, am.index) + " " + block.slice(am.index + am[0].length);
+    }
+
+    // Bỏ ký hiệu radio "O"/"o"/"0" đứng trước chữ cái đáp án (dữ liệu OCR thường có)
+    block = block.replace(/\b[Oo0]\s+(?=[A-Ea-e][\.\):：])/g, "");
+
+    var lines = block.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+
+    var optRe = /^([A-Ea-e])[\.\):：]\s*(.+)$/;
+    var optLines = [];
+    var firstOpt = -1;
+    for (var i = 0; i < lines.length; i++) {
+      var om = lines[i].match(optRe);
+      if (om) { optLines.push(om); if (firstOpt === -1) firstOpt = i; }
+    }
+
+    var question = "";
+    var options = [];
+    if (optLines.length >= 2) {
+      question = lines.slice(0, firstOpt).join(" ").trim();
+      options = optLines.map(function (o) { return o[2].trim(); });
+    } else {
+      // Dạng inline: các đáp án nằm chung dòng (chấp nhận khoảng trắng bị mất)
+      var flat = lines.join(" ");
+      var parts = flat.split(/\s+(?=[A-Ea-e][\.\):：]\s*)/);
+      if (parts.length >= 3) {
+        question = parts[0].trim();
+        options = parts.slice(1).map(function (p) {
+          return p.replace(/^[A-Ea-e][\.\):：]\s*/, "").trim();
+        });
+      }
+    }
+
+    if (!question || options.length < 2) return null;
+    return { question: question, options: options, correct: correct };
+  }
+
+  function letterToIndex(l) {
+    var c = String(l).toUpperCase().charCodeAt(0);
+    if (c >= 65 && c <= 69) return c - 65; // A-E
+    return -1;
+  }
+
+  /* ---------------- Màn hình duyệt ---------------- */
+  function openImportModal() {
+    document.getElementById("importModal").classList.remove("hidden");
+  }
+  function closeImportModal() {
+    document.getElementById("importModal").classList.add("hidden");
+  }
+
+  function renderImportReview() {
+    var list = document.getElementById("importReviewList");
+    var summary = document.getElementById("importSummary");
+    var subject = App.currentSubject();
+    if (summary) {
+      summary.textContent = "Đã tách " + drafts.length + " câu. Môn học: " +
+        (subject ? subject.name : "—") + ". Kiểm tra, đánh dấu đáp án đúng rồi bấm Nhập.";
+    }
+    var confirmBtn = document.getElementById("btnImportConfirm");
+    if (confirmBtn) confirmBtn.textContent = "Nhập " + drafts.length + " câu";
+
+    list.innerHTML = "";
+    drafts.forEach(function (d, i) {
+      var div = document.createElement("div");
+      div.className = "imp-item";
+      var opts = "";
+      d.options.forEach(function (opt, oi) {
+        var letter = String.fromCharCode(65 + oi);
+        var checked = d.correct.indexOf(oi) !== -1 ? " checked" : "";
+        opts += '<div class="imp-opt"><span class="imp-letter">' + letter + '</span>' +
+          '<input type="text" class="imp-opt-text" value="' + App.escapeHtml(opt) + '">' +
+          '<label class="imp-ok"><input type="checkbox" class="imp-opt-ok"' + checked + '> đúng</label></div>';
+      });
+      div.innerHTML =
+        '<div class="imp-head"><span class="imp-num">Câu ' + (i + 1) + '</span>' +
+        '<button type="button" class="imp-del">✕</button></div>' +
+        '<textarea class="imp-q" rows="2">' + App.escapeHtml(d.question) + '</textarea>' +
+        '<div class="imp-opts">' + opts + '</div>';
+      div.querySelector(".imp-del").addEventListener("click", function () { div.remove(); });
+      list.appendChild(div);
+    });
+  }
+
+  function confirmImport() {
+    var list = document.getElementById("importReviewList");
+    var items = list.querySelectorAll(".imp-item");
+    var topic = (document.getElementById("importTopic").value || "").trim() || "Chung";
+    var qs = [];
+    items.forEach(function (item) {
+      var question = item.querySelector(".imp-q").value.trim();
+      var optInputs = item.querySelectorAll(".imp-opt-text");
+      var options = [];
+      var correct = [];
+      optInputs.forEach(function (inp) {
+        var val = inp.value.trim();
+        if (!val) return;
+        var idx = options.length;
+        options.push(val);
+        var ok = inp.parentNode.querySelector(".imp-opt-ok");
+        if (ok && ok.checked) correct.push(idx);
+      });
+      if (!question || options.length < 2 || !correct.length) return; // bỏ câu không hợp lệ
+      var q = {
+        id: App.uid(),
+        topic: topic,
+        type: correct.length === 1 ? "mcq" : "multi",
+        question: question,
+        options: options,
+        answer: correct.length === 1 ? correct[0] : correct.slice().sort(function (a, b) { return a - b; }),
+        explanation: ""
+      };
+      if (q.type === "multi") q.pick = correct.length;
+      qs.push(q);
+    });
+    if (!qs.length) { App.toast("Không có câu hợp lệ. Kiểm tra nội dung và đánh dấu đáp án đúng."); return; }
+    App.addQuestions(qs);
+    closeImportModal();
+    App.refresh();
+    App.toast("Đã nhập " + qs.length + " câu hỏi.");
+  }
+
+  init();
+})();
+
+</script>
+</body>
+</html>

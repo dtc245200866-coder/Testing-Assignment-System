@@ -1,0 +1,37 @@
+/* ============================================================
+   components.css — modal, bảng điều hướng câu hỏi, hint
+   ============================================================ */
+.hint { color: var(--muted); font-size: 13px; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal-box {
+  background: var(--card); border-radius: 14px; padding: 20px; width: 100%; max-width: 620px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-box h3 { margin-top: 0; }
+.modal-box label { display: block; margin-bottom: 12px; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.modal-box input[type=text], .modal-box textarea, .modal-box select {
+  width: 100%; margin-top: 4px; padding: 9px 11px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14.5px; font-family: inherit;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.modal-small { max-width: 380px; }
+
+/* Bảng điều hướng câu hỏi */
+.nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; margin: 14px 0 4px; }
+.nav-cell {
+  position: relative; aspect-ratio: 1; min-width: 0;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  background: var(--card); color: var(--text); cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.nav-cell.current { border-color: var(--primary); outline: 2px solid var(--primary-soft); }
+.nav-cell.correct { background: var(--correct-soft); border-color: var(--correct); color: var(--correct); }
+.nav-cell.wrong { background: var(--wrong-soft); border-color: var(--wrong); color: var(--wrong); }
+.nav-cell.flagged { border-color: var(--flag); }
+.nav-cell.flagged::after {
+  content: "★"; position: absolute; top: 2px; right: 3px;
+  font-size: 11px; line-height: 1; color: var(--flag);
+}

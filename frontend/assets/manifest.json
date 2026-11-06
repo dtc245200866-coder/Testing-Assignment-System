@@ -1,0 +1,13 @@
+{
+  "name": "Tạo Câu Hỏi Và Ôn tập",
+  "short_name": "Tạo câu hỏi & Ôn tập",
+  "description": "Tự tạo câu hỏi và ôn tập nhiều môn học: trắc nghiệm, đúng/sai, kéo thả, chọn nhiều đáp án.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
