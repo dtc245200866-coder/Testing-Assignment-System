@@ -60,6 +60,7 @@
       <nav class="side-nav">
         <button class="side-item active" data-view="quiz"> Làm bài</button>
         <button class="side-item" data-view="manage"> Quản lý câu hỏi</button>
+        <button class="side-item" data-view="history">📊 Lịch sử kết quả</button>
       </nav>
       <div class="side-section">
         <div class="side-label">Ôn theo môn học nhé</div>
@@ -121,6 +122,7 @@
           <h2>Kết quả</h2>
           <div class="score-big" id="scoreBig">8/10</div>
           <p id="scoreMsg" class="score-msg"></p>
+          <p id="savedNote" class="hint" style="color: var(--muted); margin-top: 4px;"></p>
           <div id="wrongList" class="wrong-list"></div>
           <div class="result-actions">
             <button id="btnRetryWrong" class="btn primary">Làm lại các câu sai</button>
@@ -186,6 +188,16 @@
             </form>
           </div>
         </div>
+      </section>
+
+      <!-- ============ VIEW: LỊCH SỬ KẾT QUẢ ============ -->
+      <section id="view-history" class="view">
+        <div class="history-head">
+          <h2>Lịch sử kết quả</h2>
+          <button id="btnClearHistory" class="btn danger sm">🗑 Xóa tất cả</button>
+        </div>
+        <p id="historyEmpty" class="hint hidden">Chưa có lần làm bài nào được lưu.</p>
+        <div id="historyList" class="history-list"></div>
       </section>
     </main>
   </div>

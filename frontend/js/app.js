@@ -6,6 +6,7 @@
   "use strict";
 
   var STORAGE_KEY = "quiz_subjects_v1";
+  var HISTORY_KEY = "quiz_history_v1";
   var subjects = [];
   var currentSubjectId = null;
 
@@ -14,7 +15,8 @@
     index: 0,
     results: [],
     answered: false,
-    flags: {}
+    flags: {},
+    topicLabel: ""
   };
 
   var dragState = { assigned: {}, selected: null, termOrder: [] };
@@ -44,6 +46,29 @@
   }
   function cacheKey() {
     return STORAGE_KEY + (userId ? ":" + userId : "");
+  }
+  function historyKey() {
+    return HISTORY_KEY + (userId ? ":" + userId : "");
+  }
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(historyKey());
+      if (!raw) raw = localStorage.getItem(HISTORY_KEY); // key cũ
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* bỏ qua */ }
+    return [];
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(historyKey(), JSON.stringify(list)); } catch (e) { /* bộ nhớ không khả dụng */ }
+  }
+  function addHistory(entry) {
+    var list = loadHistory();
+    list.unshift(entry);
+    if (list.length > 200) list = list.slice(0, 200);
+    saveHistory(list);
   }
 
   /* ---------------- Dữ liệu ---------------- */
@@ -184,6 +209,7 @@
     document.getElementById("view-" + name).classList.add("active");
     if (name === "quiz") renderHome();
     if (name === "manage") renderManage();
+    if (name === "history") renderHistory();
   }
 
   /* ---------------- Định tuyến URL (hash) ---------------- */
@@ -214,7 +240,9 @@
     return (location.hash || "#/").replace(/^#\/?/, "").split("/");
   }
   function viewToRoute(view) {
-    return view === "manage" ? "quan-ly" : "on-tap";
+    if (view === "manage") return "quan-ly";
+    if (view === "history") return "lich-su";
+    return "on-tap";
   }
   function navigate(route) {
     var target = "#/" + route;
@@ -240,6 +268,11 @@
       var msid = parts[1] ? safeDecode(parts[1]) : null;
       if (msid && findSubject(msid)) currentSubjectId = msid;
       setActiveView("manage");
+      return;
+    }
+
+    if (section === "lich-su") {
+      setActiveView("history");
       return;
     }
 
@@ -358,6 +391,7 @@
     quiz.results = [];
     quiz.answered = false;
     quiz.flags = {};
+    quiz.topicLabel = topic || "Tất cả câu hỏi";
 
     document.getElementById("quiz-home").classList.add("hidden");
     document.getElementById("quiz-result").classList.add("hidden");
@@ -731,6 +765,7 @@
     document.getElementById("quiz-result").classList.remove("hidden");
     var total = quiz.questions.length;
     var score = quiz.results.filter(Boolean).length;
+    recordResult(score, total);
     document.getElementById("scoreBig").textContent = score + " / " + total;
     var pct = total ? score / total : 0;
     var msg = pct === 1 ? "🏆 Xuất sắc! Bạn nắm rất chắc kiến thức."
@@ -738,6 +773,8 @@
       : pct >= 0.5 ? "📖 Khá. Hãy xem lại các câu sai dưới đây."
       : "💪 Cần ôn kỹ hơn. Xem lại các câu sai nhé.";
     document.getElementById("scoreMsg").textContent = msg;
+    var savedNote = document.getElementById("savedNote");
+    if (savedNote) savedNote.textContent = "✅ Đã lưu kết quả vào lịch sử.";
 
     var wl = document.getElementById("wrongList");
     wl.innerHTML = "";
@@ -772,6 +809,73 @@
     return "";
   }
 
+  /* ---------------- Lưu & hiển thị lịch sử kết quả ---------------- */
+  function recordResult(score, total) {
+    var s = currentSubject();
+    addHistory({
+      id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36),
+      subject: s ? s.name : "",
+      topic: quiz.topicLabel || "Tất cả câu hỏi",
+      score: score,
+      total: total,
+      pct: total ? Math.round(score / total * 100) : 0,
+      date: new Date().toISOString()
+    });
+  }
+
+  function formatDate(iso) {
+    try {
+      var d = new Date(iso);
+      var dd = ("0" + d.getDate()).slice(-2);
+      var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+      var hh = ("0" + d.getHours()).slice(-2);
+      var mi = ("0" + d.getMinutes()).slice(-2);
+      return dd + "/" + mm + "/" + d.getFullYear() + " " + hh + ":" + mi;
+    } catch (e) { return ""; }
+  }
+
+  function removeHistory(id) {
+    var list = loadHistory().filter(function (x) { return x.id !== id; });
+    saveHistory(list);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = document.getElementById("historyList");
+    var empty = document.getElementById("historyEmpty");
+    if (!list) return;
+    var items = loadHistory();
+    list.innerHTML = "";
+    if (empty) empty.classList.toggle("hidden", items.length > 0);
+    items.forEach(function (h) {
+      var div = document.createElement("div");
+      div.className = "history-item";
+      var pctClass = h.pct >= 80 ? "good" : (h.pct >= 50 ? "mid" : "bad");
+      div.innerHTML =
+        '<div class="hi-main">' +
+          '<div class="hi-subject"></div>' +
+          '<div class="hi-meta"></div>' +
+        "</div>" +
+        '<div class="hi-score ' + pctClass + '"></div>' +
+        '<button class="hi-del" type="button" title="Xóa" aria-label="Xóa">✕</button>';
+      div.querySelector(".hi-subject").textContent = h.subject || "Không rõ môn học";
+      div.querySelector(".hi-meta").textContent = (h.topic || "Tất cả câu hỏi") + " · " + formatDate(h.date);
+      div.querySelector(".hi-score").textContent = h.score + "/" + h.total;
+      div.querySelector(".hi-del").addEventListener("click", function () { removeHistory(h.id); });
+      list.appendChild(div);
+    });
+  }
+
+  var btnClearHistory = document.getElementById("btnClearHistory");
+  if (btnClearHistory) {
+    btnClearHistory.addEventListener("click", function () {
+      askConfirm("Xóa toàn bộ lịch sử kết quả?", "Xóa", function () {
+        saveHistory([]);
+        renderHistory();
+      });
+    });
+  }
+
   function startWith(questions) {
     if (document.getElementById("shuffleToggle").checked) questions = shuffle(questions);
     quiz.questions = questions;
@@ -793,6 +897,7 @@
     btnRetryWrong.addEventListener("click", function () {
       var wrong = quiz.questions.filter(function (q, i) { return !quiz.results[i]; });
       if (!wrong.length) { toast("Không có câu sai nào để làm lại."); return; }
+      quiz.topicLabel = "Làm lại câu sai";
       startWith(wrong);
     });
   }

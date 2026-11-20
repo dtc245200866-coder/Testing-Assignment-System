@@ -135,3 +135,26 @@
 .wrong-item .wi-q { font-weight: 600; }
 .wrong-item .wi-a { color: var(--correct); font-size: 14px; margin-top: 4px; }
 .result-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+
+/* Lịch sử kết quả */
+.history-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.history-head h2 { margin: 0; }
+.history-list { display: grid; gap: 10px; }
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.history-item .hi-main { flex: 1; min-width: 0; }
+.history-item .hi-subject { font-weight: 600; line-height: 1.3; }
+.history-item .hi-meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.history-item .hi-score { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.history-item .hi-score.good { color: var(--correct); }
+.history-item .hi-score.mid { color: var(--flag); }
+.history-item .hi-score.bad { color: var(--wrong); }
+.history-item .hi-del {
+  flex: none; width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 14px; line-height: 1;
+}
+.history-item .hi-del:hover { color: var(--wrong); border-color: var(--wrong); }
