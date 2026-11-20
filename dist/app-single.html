@@ -286,7 +286,9 @@ body {
 .check-row { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
 
 /* Thanh tiến độ */
-.quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.quiz-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.quiz-top .progress-text { flex: 1; }
+.quiz-top-actions { display: flex; align-items: center; gap: 8px; }
 .progress-text { font-weight: 600; color: var(--muted); font-size: 14px; }
 .progress-bar { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
 .progress-fill { height: 100%; background: var(--primary); width: 0; transition: width .25s; }
@@ -569,7 +571,10 @@ body {
           <div class="quiz-top">
             <button id="btnBackHome" class="btn ghost">← Chọn lại</button>
             <div class="progress-text" id="progressText">Câu 1 / 10</div>
-            <button id="btnNav" class="btn ghost">☰ Các câu</button>
+            <div class="quiz-top-actions">
+              <button id="btnSubmit" class="btn primary sm">Nộp bài</button>
+              <button id="btnNav" class="btn ghost">☰ Các câu</button>
+            </div>
           </div>
           <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
 
@@ -2326,6 +2331,14 @@ window.SEED_SUBJECTS = [
     return null;
   }
 
+  function isComplete(q, ans) {
+    if (q.type === "mcq") return ans != null;
+    if (q.type === "multi") return Array.isArray(ans) && ans.length === (q.pick || 2);
+    if (q.type === "tf") return Array.isArray(ans) && !ans.some(function (a) { return a == null; });
+    if (q.type === "drag") return ans != null && Object.keys(ans).length === q.pairs.length;
+    return false;
+  }
+
   function isCorrect(q, ans) {
     if (q.type === "mcq") return ans === q.answer;
     if (q.type === "multi") {
@@ -2349,12 +2362,7 @@ window.SEED_SUBJECTS = [
     var fb = document.getElementById("feedback");
 
     // kiểm tra đã trả lời đủ chưa
-    var incomplete = false;
-    if (q.type === "mcq" && ans == null) incomplete = true;
-    if (q.type === "multi" && ans.length !== (q.pick || 2)) incomplete = true;
-    if (q.type === "tf" && ans.some(function (a) { return a == null; })) incomplete = true;
-    if (q.type === "drag" && Object.keys(ans).length !== q.pairs.length) incomplete = true;
-    if (incomplete) {
+    if (!isComplete(q, ans)) {
       fb.className = "feedback show no";
       fb.innerHTML = "⚠️ Bạn chưa trả lời đủ. Hãy chọn đầy đủ đáp án.";
       return;
@@ -2432,6 +2440,35 @@ window.SEED_SUBJECTS = [
       }
     });
   }
+
+  /* ---------------- Nộp bài (chấm tất cả một lần) ---------------- */
+  function submitQuiz() {
+    var unanswered = 0;
+    quiz.questions.forEach(function (q, i) {
+      if (quiz.results[i] !== undefined) return;
+      var ans = quiz.answers[i];
+      if (ans == null || !isComplete(q, ans)) unanswered++;
+    });
+
+    var doSubmit = function () {
+      quiz.questions.forEach(function (q, i) {
+        if (quiz.results[i] !== undefined) return;
+        var ans = quiz.answers[i];
+        if (ans != null && isComplete(q, ans)) quiz.results[i] = isCorrect(q, ans);
+        // câu chưa trả lời giữ undefined → kết quả hiển thị "Chưa làm"
+      });
+      showResult();
+    };
+
+    if (unanswered > 0) {
+      askConfirm("Bạn còn " + unanswered + " câu chưa trả lời. Nộp bài ngay?", "Nộp bài", doSubmit);
+    } else {
+      doSubmit();
+    }
+  }
+
+  var btnSubmit = document.getElementById("btnSubmit");
+  if (btnSubmit) btnSubmit.addEventListener("click", submitQuiz);
 
   function showResult() {
     document.getElementById("quiz-run").classList.add("hidden");

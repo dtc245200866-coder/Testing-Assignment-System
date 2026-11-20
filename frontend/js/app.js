@@ -715,6 +715,14 @@
     return null;
   }
 
+  function isComplete(q, ans) {
+    if (q.type === "mcq") return ans != null;
+    if (q.type === "multi") return Array.isArray(ans) && ans.length === (q.pick || 2);
+    if (q.type === "tf") return Array.isArray(ans) && !ans.some(function (a) { return a == null; });
+    if (q.type === "drag") return ans != null && Object.keys(ans).length === q.pairs.length;
+    return false;
+  }
+
   function isCorrect(q, ans) {
     if (q.type === "mcq") return ans === q.answer;
     if (q.type === "multi") {
@@ -738,12 +746,7 @@
     var fb = document.getElementById("feedback");
 
     // kiểm tra đã trả lời đủ chưa
-    var incomplete = false;
-    if (q.type === "mcq" && ans == null) incomplete = true;
-    if (q.type === "multi" && ans.length !== (q.pick || 2)) incomplete = true;
-    if (q.type === "tf" && ans.some(function (a) { return a == null; })) incomplete = true;
-    if (q.type === "drag" && Object.keys(ans).length !== q.pairs.length) incomplete = true;
-    if (incomplete) {
+    if (!isComplete(q, ans)) {
       fb.className = "feedback show no";
       fb.innerHTML = "⚠️ Bạn chưa trả lời đủ. Hãy chọn đầy đủ đáp án.";
       return;
@@ -821,6 +824,35 @@
       }
     });
   }
+
+  /* ---------------- Nộp bài (chấm tất cả một lần) ---------------- */
+  function submitQuiz() {
+    var unanswered = 0;
+    quiz.questions.forEach(function (q, i) {
+      if (quiz.results[i] !== undefined) return;
+      var ans = quiz.answers[i];
+      if (ans == null || !isComplete(q, ans)) unanswered++;
+    });
+
+    var doSubmit = function () {
+      quiz.questions.forEach(function (q, i) {
+        if (quiz.results[i] !== undefined) return;
+        var ans = quiz.answers[i];
+        if (ans != null && isComplete(q, ans)) quiz.results[i] = isCorrect(q, ans);
+        // câu chưa trả lời giữ undefined → kết quả hiển thị "Chưa làm"
+      });
+      showResult();
+    };
+
+    if (unanswered > 0) {
+      askConfirm("Bạn còn " + unanswered + " câu chưa trả lời. Nộp bài ngay?", "Nộp bài", doSubmit);
+    } else {
+      doSubmit();
+    }
+  }
+
+  var btnSubmit = document.getElementById("btnSubmit");
+  if (btnSubmit) btnSubmit.addEventListener("click", submitQuiz);
 
   function showResult() {
     document.getElementById("quiz-run").classList.add("hidden");
