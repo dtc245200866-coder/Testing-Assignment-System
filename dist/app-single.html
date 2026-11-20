@@ -386,6 +386,29 @@ body {
 .wrong-item .wi-a { color: var(--correct); font-size: 14px; margin-top: 4px; }
 .result-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
 
+/* Lịch sử kết quả */
+.history-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.history-head h2 { margin: 0; }
+.history-list { display: grid; gap: 10px; }
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.history-item .hi-main { flex: 1; min-width: 0; }
+.history-item .hi-subject { font-weight: 600; line-height: 1.3; }
+.history-item .hi-meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.history-item .hi-score { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.history-item .hi-score.good { color: var(--correct); }
+.history-item .hi-score.mid { color: var(--flag); }
+.history-item .hi-score.bad { color: var(--wrong); }
+.history-item .hi-del {
+  flex: none; width: 30px; height: 30px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 14px; line-height: 1;
+}
+.history-item .hi-del:hover { color: var(--wrong); border-color: var(--wrong); }
+
 </style>
   <style>
 /* ============================================================
@@ -504,6 +527,7 @@ body {
       <nav class="side-nav">
         <button class="side-item active" data-view="quiz"> Làm bài</button>
         <button class="side-item" data-view="manage"> Quản lý câu hỏi</button>
+        <button class="side-item" data-view="history">📊 Lịch sử kết quả</button>
       </nav>
       <div class="side-section">
         <div class="side-label">Ôn theo môn học nhé</div>
@@ -565,6 +589,7 @@ body {
           <h2>Kết quả</h2>
           <div class="score-big" id="scoreBig">8/10</div>
           <p id="scoreMsg" class="score-msg"></p>
+          <p id="savedNote" class="hint" style="color: var(--muted); margin-top: 4px;"></p>
           <div id="wrongList" class="wrong-list"></div>
           <div class="result-actions">
             <button id="btnRetryWrong" class="btn primary">Làm lại các câu sai</button>
@@ -630,6 +655,16 @@ body {
             </form>
           </div>
         </div>
+      </section>
+
+      <!-- ============ VIEW: LỊCH SỬ KẾT QUẢ ============ -->
+      <section id="view-history" class="view">
+        <div class="history-head">
+          <h2>Lịch sử kết quả</h2>
+          <button id="btnClearHistory" class="btn danger sm">🗑 Xóa tất cả</button>
+        </div>
+        <p id="historyEmpty" class="hint hidden">Chưa có lần làm bài nào được lưu.</p>
+        <div id="historyList" class="history-list"></div>
       </section>
     </main>
   </div>
@@ -1582,6 +1617,7 @@ window.SEED_SUBJECTS = [
   "use strict";
 
   var STORAGE_KEY = "quiz_subjects_v1";
+  var HISTORY_KEY = "quiz_history_v1";
   var subjects = [];
   var currentSubjectId = null;
 
@@ -1589,8 +1625,10 @@ window.SEED_SUBJECTS = [
     questions: [],
     index: 0,
     results: [],
+    answers: [],
     answered: false,
-    flags: {}
+    flags: {},
+    topicLabel: ""
   };
 
   var dragState = { assigned: {}, selected: null, termOrder: [] };
@@ -1620,6 +1658,29 @@ window.SEED_SUBJECTS = [
   }
   function cacheKey() {
     return STORAGE_KEY + (userId ? ":" + userId : "");
+  }
+  function historyKey() {
+    return HISTORY_KEY + (userId ? ":" + userId : "");
+  }
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(historyKey());
+      if (!raw) raw = localStorage.getItem(HISTORY_KEY); // key cũ
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { /* bỏ qua */ }
+    return [];
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(historyKey(), JSON.stringify(list)); } catch (e) { /* bộ nhớ không khả dụng */ }
+  }
+  function addHistory(entry) {
+    var list = loadHistory();
+    list.unshift(entry);
+    if (list.length > 200) list = list.slice(0, 200);
+    saveHistory(list);
   }
 
   /* ---------------- Dữ liệu ---------------- */
@@ -1747,7 +1808,7 @@ window.SEED_SUBJECTS = [
   var sideItems = document.querySelectorAll(".side-nav .side-item");
   sideItems.forEach(function (item) {
     item.addEventListener("click", function () {
-      setActiveView(item.dataset.view);
+      navigate(viewToRoute(item.dataset.view));
       closeSidebar();
     });
   });
@@ -1760,7 +1821,98 @@ window.SEED_SUBJECTS = [
     document.getElementById("view-" + name).classList.add("active");
     if (name === "quiz") renderHome();
     if (name === "manage") renderManage();
+    if (name === "history") renderHistory();
   }
+
+  /* ---------------- Định tuyến URL (hash) ---------------- */
+  var offlineMode = false;
+
+  function safeDecode(s) {
+    try { return decodeURIComponent(s); } catch (e) { return s; }
+  }
+  function slugify(s) {
+    return String(s == null ? "" : s)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-+/g, "-");
+  }
+  function findTopicBySlug(slug) {
+    var map = {};
+    getBank().forEach(function (q) {
+      var t = q.topic || "Chung";
+      map[slugify(t)] = t;
+    });
+    return map[slug] || null;
+  }
+  function routeParts() {
+    return (location.hash || "#/").replace(/^#\/?/, "").split("/");
+  }
+  function viewToRoute(view) {
+    if (view === "manage") return "quan-ly";
+    if (view === "history") return "lich-su";
+    return "on-tap";
+  }
+  function navigate(route) {
+    var target = "#/" + route;
+    if (location.hash === target) { applyRoute(); return; }
+    location.hash = target; // kích hoạt hashchange -> applyRoute
+  }
+  function applyRoute() {
+    var parts = routeParts();
+    var section = parts[0] || "on-tap";
+
+    // Chưa đăng nhập -> ép về trang đăng nhập
+    if (useSupabase() && !userId && !offlineMode && section !== "dang-nhap") {
+      history.replaceState(null, "", "#/dang-nhap");
+      showAuthScreen();
+      return;
+    }
+    if (section === "dang-nhap") {
+      if (userId) { history.replaceState(null, "", "#/on-tap"); section = "on-tap"; }
+      else { showAuthScreen(); return; }
+    }
+
+    if (section === "quan-ly") {
+      var msid = parts[1] ? safeDecode(parts[1]) : null;
+      if (msid && findSubject(msid)) currentSubjectId = msid;
+      setActiveView("manage");
+      return;
+    }
+
+    if (section === "lich-su") {
+      setActiveView("history");
+      return;
+    }
+
+    // section on-tap: #/on-tap[/<subjectId>[/<topic>]]
+    var subjectId = parts[1] ? safeDecode(parts[1]) : null;
+    if (subjectId && findSubject(subjectId)) currentSubjectId = subjectId;
+    setActiveView("quiz"); // hiện view + renderHome theo môn đang chọn
+
+    var topicSlug = parts[2] ? safeDecode(parts[2]) : null;
+    var runTopic = null;
+    var shouldRun = false;
+    if (topicSlug) {
+      if (topicSlug === "all") {
+        shouldRun = true;
+      } else {
+        var found = findTopicBySlug(topicSlug);
+        if (found) { shouldRun = true; runTopic = found; }
+      }
+    }
+    if (shouldRun) {
+      startQuiz(runTopic);
+    } else {
+      document.getElementById("quiz-run").classList.add("hidden");
+      document.getElementById("quiz-result").classList.add("hidden");
+      document.getElementById("quiz-home").classList.remove("hidden");
+    }
+  }
+  window.addEventListener("hashchange", applyRoute);
   var btnMenu = document.getElementById("btnMenu");
   if (btnMenu) btnMenu.addEventListener("click", openSidebar);
   var sidebarBackdrop = document.getElementById("sidebarBackdrop");
@@ -1786,8 +1938,7 @@ window.SEED_SUBJECTS = [
       div.querySelector(".s-name").textContent = s.name;
       div.querySelector(".s-count").textContent = (s.questions ? s.questions.length : 0) + " câu";
       div.addEventListener("click", function () {
-        currentSubjectId = s.id;
-        renderHome();
+        navigate("on-tap/" + s.id);
       });
       list.appendChild(div);
     });
@@ -1822,8 +1973,7 @@ window.SEED_SUBJECTS = [
       b.className = "side-topic" + (s.id === currentSubjectId ? " active" : "");
       b.innerHTML = '<span>' + escapeHtml(s.name) + '</span><span class="st-count">' + (s.questions ? s.questions.length : 0) + "</span>";
       b.addEventListener("click", function () {
-        currentSubjectId = s.id;
-        setActiveView("quiz");
+        navigate("on-tap/" + s.id);
         closeSidebar();
       });
       list.appendChild(b);
@@ -1836,7 +1986,10 @@ window.SEED_SUBJECTS = [
     div.innerHTML = '<span class="t-name"></span><span class="t-count"></span>';
     div.querySelector(".t-name").textContent = name;
     div.querySelector(".t-count").textContent = count + " câu";
-    div.addEventListener("click", function () { startQuiz(topic); });
+    div.addEventListener("click", function () {
+      var slug = topic ? slugify(topic) : "all";
+      navigate("on-tap/" + (currentSubjectId || "") + "/" + slug);
+    });
     return div;
   }
 
@@ -1848,8 +2001,10 @@ window.SEED_SUBJECTS = [
     quiz.questions = qs;
     quiz.index = 0;
     quiz.results = [];
+    quiz.answers = [];
     quiz.answered = false;
     quiz.flags = {};
+    quiz.topicLabel = topic || "Tất cả câu hỏi";
 
     document.getElementById("quiz-home").classList.add("hidden");
     document.getElementById("quiz-result").classList.add("hidden");
@@ -1860,10 +2015,7 @@ window.SEED_SUBJECTS = [
   document.getElementById("btnBackHome").addEventListener("click", goHome);
   document.getElementById("btnResultHome").addEventListener("click", goHome);
   function goHome() {
-    document.getElementById("quiz-run").classList.add("hidden");
-    document.getElementById("quiz-result").classList.add("hidden");
-    document.getElementById("quiz-home").classList.remove("hidden");
-    renderHome();
+    navigate("on-tap" + (currentSubjectId ? "/" + currentSubjectId : ""));
   }
 
   /* ---------------- Render câu hỏi ---------------- */
@@ -1907,6 +2059,8 @@ window.SEED_SUBJECTS = [
       flagBtn.textContent = flagged ? "★ Đã đánh dấu" : "⭐ Đánh dấu khó";
       flagBtn.classList.toggle("flagged", flagged);
     }
+
+    restoreAnswer(q);
   }
 
   function renderMcq(q) {
@@ -1917,6 +2071,58 @@ window.SEED_SUBJECTS = [
         "<span>" + escapeHtml(opt) + "</span></div>";
     });
     return html;
+  }
+
+  /* Lưu câu trả lời đang chọn (chưa bấm Kiểm tra) để khôi phục khi quay lại */
+  function saveAnswer() {
+    var q = quiz.questions[quiz.index];
+    quiz.answers[quiz.index] = getUserAnswer(q);
+  }
+
+  function restoreAnswer(q) {
+    var ans = quiz.answers[quiz.index];
+    var checked = quiz.results[quiz.index] !== undefined;
+    if (ans == null && !checked) return;
+
+    var card = document.getElementById("questionCard");
+
+    if (q.type === "mcq") {
+      if (ans != null) {
+        card.querySelectorAll(".option").forEach(function (o) {
+          if (parseInt(o.dataset.i, 10) === ans) o.classList.add("selected");
+        });
+      }
+    } else if (q.type === "multi") {
+      (ans || []).forEach(function (i) {
+        var el = card.querySelector('.option[data-i="' + i + '"]');
+        if (el) el.classList.add("selected");
+      });
+    } else if (q.type === "tf") {
+      (ans || []).forEach(function (val, i) {
+        if (val == null) return;
+        var st = card.querySelector('.tf-statement[data-i="' + i + '"]');
+        if (!st) return;
+        var btn = st.querySelector('button[data-val="' + (val ? "true" : "false") + '"]');
+        if (btn) btn.classList.add(val ? "on-true" : "on-false");
+      });
+    } else if (q.type === "drag") {
+      if (ans) {
+        dragState.assigned = {};
+        for (var k in ans) dragState.assigned[k] = ans[k];
+        refreshDrag(card, q);
+      }
+    }
+
+    if (checked) {
+      quiz.answered = true;
+      markCorrectAnswer(q, ans);
+      document.getElementById("btnCheck").classList.add("hidden");
+      var ok = quiz.results[quiz.index] === true;
+      var fb = document.getElementById("feedback");
+      fb.className = "feedback show " + (ok ? "ok" : "no");
+      fb.innerHTML = (ok ? "✅ Chính xác!" : "❌ Chưa đúng.") +
+        (q.explanation ? '<div class="fb-explain"><strong>Giải thích:</strong> ' + escapeHtml(q.explanation) + "</div>" : "");
+    }
   }
 
   function renderMulti(q) {
@@ -1972,6 +2178,7 @@ window.SEED_SUBJECTS = [
           if (quiz.answered) return;
           card.querySelectorAll(".option").forEach(function (o) { o.classList.remove("selected"); });
           el.classList.add("selected");
+          saveAnswer();
         });
       });
     }
@@ -1982,9 +2189,10 @@ window.SEED_SUBJECTS = [
         el.addEventListener("click", function () {
           if (quiz.answered) return;
           var selected = card.querySelectorAll(".option.selected").length;
-          if (el.classList.contains("selected")) { el.classList.remove("selected"); return; }
+          if (el.classList.contains("selected")) { el.classList.remove("selected"); saveAnswer(); return; }
           if (selected >= pick) return;
           el.classList.add("selected");
+          saveAnswer();
         });
       });
     }
@@ -1998,6 +2206,7 @@ window.SEED_SUBJECTS = [
               b.classList.remove("on-true", "on-false");
             });
             btn.classList.add(btn.dataset.val === "true" ? "on-true" : "on-false");
+            saveAnswer();
           });
         });
       });
@@ -2051,12 +2260,14 @@ window.SEED_SUBJECTS = [
     dragState.assigned[targetIdx] = termIdx;
     dragState.selected = null;
     refreshDrag(card, q);
+    saveAnswer();
   }
 
   function removeTerm(card, q, targetIdx) {
     if (quiz.answered) return;
     delete dragState.assigned[targetIdx];
     refreshDrag(card, q);
+    saveAnswer();
   }
 
   function refreshDrag(card, q) {
@@ -2152,6 +2363,7 @@ window.SEED_SUBJECTS = [
     var ok = isCorrect(q, ans);
     quiz.answered = true;
     quiz.results[quiz.index] = ok;
+    quiz.answers[quiz.index] = ans;
     markCorrectAnswer(q, ans);
 
     fb.className = "feedback show " + (ok ? "ok" : "no");
@@ -2226,6 +2438,7 @@ window.SEED_SUBJECTS = [
     document.getElementById("quiz-result").classList.remove("hidden");
     var total = quiz.questions.length;
     var score = quiz.results.filter(Boolean).length;
+    recordResult(score, total);
     document.getElementById("scoreBig").textContent = score + " / " + total;
     var pct = total ? score / total : 0;
     var msg = pct === 1 ? "🏆 Xuất sắc! Bạn nắm rất chắc kiến thức."
@@ -2233,6 +2446,8 @@ window.SEED_SUBJECTS = [
       : pct >= 0.5 ? "📖 Khá. Hãy xem lại các câu sai dưới đây."
       : "💪 Cần ôn kỹ hơn. Xem lại các câu sai nhé.";
     document.getElementById("scoreMsg").textContent = msg;
+    var savedNote = document.getElementById("savedNote");
+    if (savedNote) savedNote.textContent = "✅ Đã lưu kết quả vào lịch sử.";
 
     var wl = document.getElementById("wrongList");
     wl.innerHTML = "";
@@ -2267,11 +2482,79 @@ window.SEED_SUBJECTS = [
     return "";
   }
 
+  /* ---------------- Lưu & hiển thị lịch sử kết quả ---------------- */
+  function recordResult(score, total) {
+    var s = currentSubject();
+    addHistory({
+      id: "h" + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36),
+      subject: s ? s.name : "",
+      topic: quiz.topicLabel || "Tất cả câu hỏi",
+      score: score,
+      total: total,
+      pct: total ? Math.round(score / total * 100) : 0,
+      date: new Date().toISOString()
+    });
+  }
+
+  function formatDate(iso) {
+    try {
+      var d = new Date(iso);
+      var dd = ("0" + d.getDate()).slice(-2);
+      var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+      var hh = ("0" + d.getHours()).slice(-2);
+      var mi = ("0" + d.getMinutes()).slice(-2);
+      return dd + "/" + mm + "/" + d.getFullYear() + " " + hh + ":" + mi;
+    } catch (e) { return ""; }
+  }
+
+  function removeHistory(id) {
+    var list = loadHistory().filter(function (x) { return x.id !== id; });
+    saveHistory(list);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = document.getElementById("historyList");
+    var empty = document.getElementById("historyEmpty");
+    if (!list) return;
+    var items = loadHistory();
+    list.innerHTML = "";
+    if (empty) empty.classList.toggle("hidden", items.length > 0);
+    items.forEach(function (h) {
+      var div = document.createElement("div");
+      div.className = "history-item";
+      var pctClass = h.pct >= 80 ? "good" : (h.pct >= 50 ? "mid" : "bad");
+      div.innerHTML =
+        '<div class="hi-main">' +
+          '<div class="hi-subject"></div>' +
+          '<div class="hi-meta"></div>' +
+        "</div>" +
+        '<div class="hi-score ' + pctClass + '"></div>' +
+        '<button class="hi-del" type="button" title="Xóa" aria-label="Xóa">✕</button>';
+      div.querySelector(".hi-subject").textContent = h.subject || "Không rõ môn học";
+      div.querySelector(".hi-meta").textContent = (h.topic || "Tất cả câu hỏi") + " · " + formatDate(h.date);
+      div.querySelector(".hi-score").textContent = h.score + "/" + h.total;
+      div.querySelector(".hi-del").addEventListener("click", function () { removeHistory(h.id); });
+      list.appendChild(div);
+    });
+  }
+
+  var btnClearHistory = document.getElementById("btnClearHistory");
+  if (btnClearHistory) {
+    btnClearHistory.addEventListener("click", function () {
+      askConfirm("Xóa toàn bộ lịch sử kết quả?", "Xóa", function () {
+        saveHistory([]);
+        renderHistory();
+      });
+    });
+  }
+
   function startWith(questions) {
     if (document.getElementById("shuffleToggle").checked) questions = shuffle(questions);
     quiz.questions = questions;
     quiz.index = 0;
     quiz.results = [];
+    quiz.answers = [];
     quiz.answered = false;
     quiz.flags = {};
     document.getElementById("quiz-result").classList.add("hidden");
@@ -2288,6 +2571,7 @@ window.SEED_SUBJECTS = [
     btnRetryWrong.addEventListener("click", function () {
       var wrong = quiz.questions.filter(function (q, i) { return !quiz.results[i]; });
       if (!wrong.length) { toast("Không có câu sai nào để làm lại."); return; }
+      quiz.topicLabel = "Làm lại câu sai";
       startWith(wrong);
     });
   }
@@ -2767,7 +3051,7 @@ window.SEED_SUBJECTS = [
     var layout = document.querySelector(".layout");
     if (layout) layout.classList.remove("hidden");
     if (subjects.length) currentSubjectId = subjects[0].id;
-    renderHome();
+    applyRoute();
   }
 
   function showAuthScreen() {
@@ -2836,7 +3120,7 @@ window.SEED_SUBJECTS = [
     userId = null;
     subjects = [];
     currentSubjectId = null;
-    showAuthScreen();
+    navigate("dang-nhap");
   }
 
   var authForm = document.getElementById("authForm");
@@ -2862,6 +3146,7 @@ window.SEED_SUBJECTS = [
         showAuthScreen();
       }).catch(function () {
         // Lỗi mạng / sự cố -> dùng local (không cần đăng nhập)
+        offlineMode = true;
         subjects = loadLocalSubjects();
         showApp();
       });

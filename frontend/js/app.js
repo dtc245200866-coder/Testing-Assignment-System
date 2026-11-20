@@ -14,6 +14,7 @@
     questions: [],
     index: 0,
     results: [],
+    answers: [],
     answered: false,
     flags: {},
     topicLabel: ""
@@ -389,6 +390,7 @@
     quiz.questions = qs;
     quiz.index = 0;
     quiz.results = [];
+    quiz.answers = [];
     quiz.answered = false;
     quiz.flags = {};
     quiz.topicLabel = topic || "Tất cả câu hỏi";
@@ -446,6 +448,8 @@
       flagBtn.textContent = flagged ? "★ Đã đánh dấu" : "⭐ Đánh dấu khó";
       flagBtn.classList.toggle("flagged", flagged);
     }
+
+    restoreAnswer(q);
   }
 
   function renderMcq(q) {
@@ -456,6 +460,58 @@
         "<span>" + escapeHtml(opt) + "</span></div>";
     });
     return html;
+  }
+
+  /* Lưu câu trả lời đang chọn (chưa bấm Kiểm tra) để khôi phục khi quay lại */
+  function saveAnswer() {
+    var q = quiz.questions[quiz.index];
+    quiz.answers[quiz.index] = getUserAnswer(q);
+  }
+
+  function restoreAnswer(q) {
+    var ans = quiz.answers[quiz.index];
+    var checked = quiz.results[quiz.index] !== undefined;
+    if (ans == null && !checked) return;
+
+    var card = document.getElementById("questionCard");
+
+    if (q.type === "mcq") {
+      if (ans != null) {
+        card.querySelectorAll(".option").forEach(function (o) {
+          if (parseInt(o.dataset.i, 10) === ans) o.classList.add("selected");
+        });
+      }
+    } else if (q.type === "multi") {
+      (ans || []).forEach(function (i) {
+        var el = card.querySelector('.option[data-i="' + i + '"]');
+        if (el) el.classList.add("selected");
+      });
+    } else if (q.type === "tf") {
+      (ans || []).forEach(function (val, i) {
+        if (val == null) return;
+        var st = card.querySelector('.tf-statement[data-i="' + i + '"]');
+        if (!st) return;
+        var btn = st.querySelector('button[data-val="' + (val ? "true" : "false") + '"]');
+        if (btn) btn.classList.add(val ? "on-true" : "on-false");
+      });
+    } else if (q.type === "drag") {
+      if (ans) {
+        dragState.assigned = {};
+        for (var k in ans) dragState.assigned[k] = ans[k];
+        refreshDrag(card, q);
+      }
+    }
+
+    if (checked) {
+      quiz.answered = true;
+      markCorrectAnswer(q, ans);
+      document.getElementById("btnCheck").classList.add("hidden");
+      var ok = quiz.results[quiz.index] === true;
+      var fb = document.getElementById("feedback");
+      fb.className = "feedback show " + (ok ? "ok" : "no");
+      fb.innerHTML = (ok ? "✅ Chính xác!" : "❌ Chưa đúng.") +
+        (q.explanation ? '<div class="fb-explain"><strong>Giải thích:</strong> ' + escapeHtml(q.explanation) + "</div>" : "");
+    }
   }
 
   function renderMulti(q) {
@@ -511,6 +567,7 @@
           if (quiz.answered) return;
           card.querySelectorAll(".option").forEach(function (o) { o.classList.remove("selected"); });
           el.classList.add("selected");
+          saveAnswer();
         });
       });
     }
@@ -521,9 +578,10 @@
         el.addEventListener("click", function () {
           if (quiz.answered) return;
           var selected = card.querySelectorAll(".option.selected").length;
-          if (el.classList.contains("selected")) { el.classList.remove("selected"); return; }
+          if (el.classList.contains("selected")) { el.classList.remove("selected"); saveAnswer(); return; }
           if (selected >= pick) return;
           el.classList.add("selected");
+          saveAnswer();
         });
       });
     }
@@ -537,6 +595,7 @@
               b.classList.remove("on-true", "on-false");
             });
             btn.classList.add(btn.dataset.val === "true" ? "on-true" : "on-false");
+            saveAnswer();
           });
         });
       });
@@ -590,12 +649,14 @@
     dragState.assigned[targetIdx] = termIdx;
     dragState.selected = null;
     refreshDrag(card, q);
+    saveAnswer();
   }
 
   function removeTerm(card, q, targetIdx) {
     if (quiz.answered) return;
     delete dragState.assigned[targetIdx];
     refreshDrag(card, q);
+    saveAnswer();
   }
 
   function refreshDrag(card, q) {
@@ -691,6 +752,7 @@
     var ok = isCorrect(q, ans);
     quiz.answered = true;
     quiz.results[quiz.index] = ok;
+    quiz.answers[quiz.index] = ans;
     markCorrectAnswer(q, ans);
 
     fb.className = "feedback show " + (ok ? "ok" : "no");
@@ -881,6 +943,7 @@
     quiz.questions = questions;
     quiz.index = 0;
     quiz.results = [];
+    quiz.answers = [];
     quiz.answered = false;
     quiz.flags = {};
     document.getElementById("quiz-result").classList.add("hidden");
