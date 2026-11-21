@@ -46,13 +46,18 @@ Mỗi câu hỏi có `topic` (chương/bài trong môn). Các dạng: `mcq`, `mu
 
 | Việc cần làm | Lệnh |
 |---|---|
-| Chạy trên máy (tự reload khi sửa & lưu) | `npm start` (hoặc `npm run dev`) → mở http://localhost:8080 |
-| Chạy server tĩnh (không tự reload, chia sẻ LAN) | `npm run serve` |
+| Chạy đầy đủ (frontend + API đăng nhập/lưu dữ liệu) | `npm run serve` → http://localhost:8080 (cần `DATABASE_URL`) |
+| Chỉ sửa giao diện (hot-reload, không có API) | `npm start` (Vite) |
 | Gộp thành 1 file HTML | `npm run build` → `dist/app-single.html` |
 | Đăng lên Netlify | `npm run deploy` |
 | Build APK Android | xem mục bên dưới |
 
-> `npm start` dùng **Vite** (hot-reload): mỗi lần bạn **lưu file** trong `frontend/`, trình duyệt tự cập nhật ngay, không cần F5.
+> **Backend** (`backend/server.js`) vừa phục vụ tĩnh `frontend/`, vừa cung cấp API xác thực (email/mật khẩu) và lưu dữ liệu theo từng tài khoản vào Postgres (Neon). Không còn dùng Supabase.
+>
+> **Biến môi trường:** `DATABASE_URL` = connection string Postgres (Neon), ví dụ `postgresql://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require`.
+>
+> - **Local (Windows):** `set DATABASE_URL=...` rồi `npm run serve`
+> - **Render:** đặt `DATABASE_URL` trong dashboard (xem `render.yaml`).
 
 ## Build APK Android
 

@@ -25,25 +25,49 @@
   var editingSubjectId = null; // id môn đang sửa
   var subjectEditId = null;    // id môn đang đổi tên (modal môn học)
 
-  /* ---------------- Cấu hình Supabase + xác thực ---------------- */
+  /* ---------------- Cấu hình API + xác thực ---------------- */
   var APP_CONFIG = window.APP_CONFIG || {};
-  var SUPABASE_URL = APP_CONFIG.SUPABASE_URL || "";
-  var SUPABASE_ANON_KEY = APP_CONFIG.SUPABASE_ANON_KEY || "";
-  var db = null;
+  var API_BASE = APP_CONFIG.API_BASE || "";
+  var TOKEN_KEY = "quiz_auth_token_v1";
+  var authToken = null; // token phiên hiện tại (chỉ ở bộ nhớ nếu không "ghi nhớ")
   var userId = null; // id người dùng đang đăng nhập
 
-  function useSupabase() {
-    return !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+  function getToken() {
+    if (authToken) return authToken;
+    try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; }
   }
-  function loadSupabaseClient() {
-    if (window.supabase && window.supabase.createClient) return Promise.resolve(window.supabase);
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
-      s.onload = function () { resolve(window.supabase); };
-      s.onerror = function () { reject(new Error("Không tải được Supabase client")); };
-      document.head.appendChild(s);
-    });
+  function setToken(token, remember) {
+    authToken = token || null;
+    try {
+      if (token && remember) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch (e) { /* bộ nhớ trình duyệt không khả dụng */ }
+  }
+  function clearToken() {
+    authToken = null;
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* bỏ qua */ }
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = { "Accept": "application/json" };
+    var token = getToken();
+    if (token) headers["Authorization"] = "Bearer " + token;
+    var body = opts.body;
+    if (body && typeof body !== "string") {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(body);
+    }
+    return fetch(API_BASE + path, { method: opts.method || "GET", headers: headers, body: body || undefined })
+      .then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (json) {
+          if (!res.ok) {
+            var err = new Error(json.error || ("HTTP " + res.status));
+            err.status = res.status;
+            throw err;
+          }
+          return json;
+        });
+      });
   }
   function cacheKey() {
     return STORAGE_KEY + (userId ? ":" + userId : "");
@@ -98,11 +122,10 @@
   }
 
   function loadSubjects() {
-    if (useSupabase() && userId) {
-      return db.from("app_data").select("data").eq("user_id", userId).maybeSingle().then(function (res) {
-        if (res.error) throw res.error;
-        if (res.data && Array.isArray(res.data.data)) {
-          subjects = res.data.data;
+    if (userId) {
+      return api("/api/data").then(function (res) {
+        if (res && Array.isArray(res.data)) {
+          subjects = res.data;
           return;
         }
         // Chưa có dữ liệu trên cloud -> nạp từ local rồi đồng bộ lên
@@ -119,8 +142,8 @@
 
   function saveSubjects() {
     try { localStorage.setItem(cacheKey(), JSON.stringify(subjects)); } catch (e) { /* bộ nhớ trình duyệt không khả dụng */ }
-    if (useSupabase() && db && userId) {
-      db.from("app_data").upsert({ user_id: userId, data: subjects, updated_at: new Date().toISOString() })
+    if (userId) {
+      api("/api/data", { method: "PUT", body: { data: subjects } })
         .then(function () {}, function () { /* bỏ qua lỗi mạng */ });
     }
   }
@@ -255,7 +278,7 @@
     var section = parts[0] || "on-tap";
 
     // Chưa đăng nhập -> ép về trang đăng nhập
-    if (useSupabase() && !userId && !offlineMode && section !== "dang-nhap") {
+    if (!userId && !offlineMode && section !== "dang-nhap") {
       history.replaceState(null, "", "#/dang-nhap");
       showAuthScreen();
       return;
@@ -1513,31 +1536,23 @@
       var confirm = document.getElementById("authConfirm").value;
       if (password !== confirm) { setAuthMsg("Mật khẩu nhập lại không khớp."); return; }
     }
-    if (!window.supabase || !window.supabase.createClient) { setAuthMsg("Hệ thống chưa sẵn sàng, thử lại sau."); return; }
     var remember = document.getElementById("authRemember").checked;
-    // Tạo lại client theo lựa chọn "ghi nhớ" (bỏ chọn = không lưu phiên vào trình duyệt)
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: remember, autoRefreshToken: remember, detectSessionInUrl: false }
-    });
     setAuthMsg("Đang xử lý…");
-    var p = authMode === "login"
-      ? db.auth.signInWithPassword({ email: email, password: password })
-      : db.auth.signUp({ email: email, password: password });
-    p.then(function (res) {
-      if (res.error) { setAuthMsg(res.error.message); return; }
-      if (authMode === "signup" && !res.data.session) {
-        setAuthMsg("Đã gửi email xác nhận. Hãy xác nhận rồi đăng nhập lại.");
-        return;
-      }
-      userId = res.data.session.user.id;
-      loadSubjects().then(showApp);
-    }).catch(function () {
-      setAuthMsg("Có lỗi xảy ra, vui lòng thử lại.");
-    });
+    var path = authMode === "login" ? "/api/login" : "/api/signup";
+    api(path, { method: "POST", body: { email: email, password: password } })
+      .then(function (res) {
+        setToken(res.token, remember);
+        userId = res.userId;
+        loadSubjects().then(showApp);
+      })
+      .catch(function (err) {
+        setAuthMsg(err.message || "Có lỗi xảy ra, vui lòng thử lại.");
+      });
   }
 
   function doLogout() {
-    if (db) db.auth.signOut();
+    api("/api/logout", { method: "POST" }).then(function () {}, function () { /* bỏ qua lỗi mạng */ });
+    clearToken();
     userId = null;
     subjects = [];
     currentSubjectId = null;
@@ -1555,25 +1570,25 @@
 
   /* ---------------- Khởi động ---------------- */
   function bootstrap() {
-    if (useSupabase()) {
-      loadSupabaseClient().then(function (sb) {
-        db = sb.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        return db.auth.getSession();
-      }).then(function (res) {
-        if (res.data && res.data.session) {
-          userId = res.data.session.user.id;
-          return loadSubjects().then(showApp);
+    if (getToken()) {
+      api("/api/me").then(function (res) {
+        userId = res.userId;
+        return loadSubjects().then(showApp);
+      }).catch(function (err) {
+        if (err.status === 401) {
+          // Phiên hết hạn -> về trang đăng nhập
+          clearToken();
+          userId = null;
+          showAuthScreen();
+        } else {
+          // Lỗi mạng -> dùng local (offline)
+          offlineMode = true;
+          subjects = loadLocalSubjects();
+          showApp();
         }
-        showAuthScreen();
-      }).catch(function () {
-        // Lỗi mạng / sự cố -> dùng local (không cần đăng nhập)
-        offlineMode = true;
-        subjects = loadLocalSubjects();
-        showApp();
       });
     } else {
-      subjects = loadLocalSubjects();
-      showApp();
+      showAuthScreen();
     }
   }
   bootstrap();

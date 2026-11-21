@@ -1,18 +1,23 @@
-# Render Blueprint — triển khai dự án lên Render dưới dạng Static Site (miễn phí, không cold-start).
+# Render Blueprint — triển khai dự án lên Render dưới dạng Web Service (Node).
 #
 # Cách triển khai:
-#   1. Commit & push file này lên GitHub (nhánh master).
-#   2. Mở https://dashboard.render.com -> New -> Blueprint.
-#   3. Kết nối GitHub, chọn repo "Testing-Assignment-System".
-#   4. Render tự đọc file này và tạo site tại https://<tên>-onrender.com.
+#   1. Tạo database Postgres miễn phí ở https://neon.tech (không hết hạn).
+#   2. Copy "connection string" của Neon (dạng postgresql://...).
+#   3. Commit & push file này lên GitHub (nhánh master).
+#   4. Mở https://dashboard.render.com -> New -> Blueprint -> chọn repo.
+#   5. Render tự đọc file này. Khi tạo service, dán connection string vào biến DATABASE_URL.
+#   6. Kết quả: https://<tên>-onrender.com
 #
-# Ứng dụng là mã tĩnh (HTML/CSS/JS), chạy hoàn toàn phía trình duyệt:
-#   - Supabase được gọi trực tiếp từ client (frontend/js/config.js), không cần biến môi trường phía server.
-#   - backend/server.js chỉ dùng khi chạy nội bộ/LAN, không dùng trên Render.
+# Kiến trúc: backend/server.js vừa phục vụ frontend/, vừa cung cấp API
+# xác thực (email/password) + lưu dữ liệu riêng theo từng tài khoản (bảng app_data).
 
 services:
   - type: web
     name: testing-assignment-system
-    runtime: static
-    # frontend/ đã là mã sẵn sàng phục vụ, không cần build.
-    staticPublishPath: frontend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # điền connection string Neon ở Render Dashboard (không commit secret)
