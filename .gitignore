@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build cache / local state
+.netlify/v1/
+.netlify/functions-internal/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log

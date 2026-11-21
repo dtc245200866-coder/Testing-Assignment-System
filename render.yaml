@@ -1,0 +1,18 @@
+# Render Blueprint — triển khai dự án lên Render dưới dạng Static Site (miễn phí, không cold-start).
+#
+# Cách triển khai:
+#   1. Commit & push file này lên GitHub (nhánh master).
+#   2. Mở https://dashboard.render.com -> New -> Blueprint.
+#   3. Kết nối GitHub, chọn repo "Testing-Assignment-System".
+#   4. Render tự đọc file này và tạo site tại https://<tên>-onrender.com.
+#
+# Ứng dụng là mã tĩnh (HTML/CSS/JS), chạy hoàn toàn phía trình duyệt:
+#   - Supabase được gọi trực tiếp từ client (frontend/js/config.js), không cần biến môi trường phía server.
+#   - backend/server.js chỉ dùng khi chạy nội bộ/LAN, không dùng trên Render.
+
+services:
+  - type: web
+    name: testing-assignment-system
+    runtime: static
+    # frontend/ đã là mã sẵn sàng phục vụ, không cần build.
+    staticPublishPath: frontend
